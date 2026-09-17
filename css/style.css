@@ -1,0 +1,1195 @@
+:root {
+  /* ---------- Dark & faded-blue palette ---------- */
+  --ink: #070a10;
+  --ink-2: #0b0f18;
+  --ink-soft: rgba(222, 232, 245, 0.62);
+  --panel: rgba(15, 21, 32, 0.55);
+  --panel-strong: rgba(13, 18, 28, 0.82);
+  --panel-border: rgba(158, 186, 219, 0.16);
+  --paper: #eef2f8;
+  --paper-dim: #92a2b8;
+  --accent: #7fa4d6;
+  --accent-soft: rgba(127, 164, 214, 0.32);
+  --accent-dim: rgba(127, 164, 214, 0.12);
+  --accent-glow: rgba(127, 164, 214, 0.55);
+
+  /* Warna khusus hotspot CONTENT (foto/link/video/embed), sengaja
+     dibedakan dari --accent supaya beda dari hotspot navigasi. */
+  --content-accent: #e3b06c;
+  --content-accent-strong: #f3d29c;
+  --content-glow: rgba(227, 176, 108, 0.55);
+
+  /* Alias kompatibilitas mundur — dipakai oleh css/pitch-finder.css
+     & css/denah-finder.css (halaman bantu internal), supaya keduanya
+     tetap konsisten tanpa perlu diedit ulang. */
+  --clay: var(--accent);
+  --clay-soft: var(--accent-soft);
+  --teal: var(--accent);
+
+  --font-ui: "Inter", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-brand: "Cormorant Garamond", "Times New Roman", serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--ink);
+  overflow: hidden;
+  font-family: var(--font-ui);
+  color: var(--paper);
+}
+
+#app {
+  position: relative;
+  width: 100vw;
+  height: 100dvh;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -10%, rgba(127, 164, 214, 0.10), transparent 60%),
+    var(--ink);
+}
+
+#panorama {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ============================================================
+   Loading screen — brand reveal + progress
+============================================================ */
+
+#loading-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  background:
+    radial-gradient(ellipse 90% 60% at 50% 40%, rgba(127, 164, 214, 0.08), transparent 65%),
+    var(--ink);
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.7s;
+}
+#loading-screen.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* ---- Brand reveal ("Earnest Architects") ---- */
+
+.brand-reveal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.brand-line {
+  display: block;
+  width: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0;
+  animation: brand-line-draw 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.15s forwards;
+}
+
+@keyframes brand-line-draw {
+  0%   { width: 0;    opacity: 0; }
+  40%  { opacity: 0.9; }
+  100% { width: 220px; opacity: 0.55; }
+}
+
+/* Soft ambient glow blob sitting behind the logo mark */
+.brand-reveal {
+  position: relative;
+}
+.brand-reveal::before {
+  content: "";
+  position: absolute;
+  inset: -20px -40px;
+  z-index: 0;
+  background: radial-gradient(closest-side, rgba(127, 164, 214, 0.30), transparent 72%);
+  filter: blur(10px);
+  opacity: 0;
+  animation: brand-glow 2.8s ease-in-out 1.25s infinite;
+}
+
+@keyframes brand-glow {
+  0%, 100% { opacity: 0.25; }
+  50%      { opacity: 0.65; }
+}
+
+.brand-mark {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: clamp(220px, 42vw, 440px);
+  height: auto;
+  opacity: 0;
+  transform: translateY(12px) scale(0.97);
+  animation: brand-mark-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards;
+}
+
+@keyframes brand-mark-in {
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ---- Progress (fades in after brand settles) ---- */
+
+.loading-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  opacity: 0;
+  animation: fade-up 0.7s ease 1.35s forwards;
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+#loading-text {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--paper-dim);
+}
+
+.loading-ring {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(127, 164, 214, 0.18);
+  border-top-color: var(--accent);
+  box-shadow: 0 0 16px 0 rgba(127, 164, 214, 0.25);
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Top HUD ---------- */
+
+.hud-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  padding: 24px 26px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(4, 7, 12, 0.65), transparent);
+  width: 100%;
+}
+.hud-logo {
+  display: block;
+  width: clamp(96px, 13vw, 176px);
+  height: auto;
+  margin: 0 0 10px 0;
+  filter: drop-shadow(0 2px 10px rgba(0,0,0,0.55));
+  opacity: 0.96;
+}
+.eyebrow {
+  margin: 0 0 5px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-shadow: 0 0 18px rgba(127, 164, 214, 0.35);
+}
+.hud-top h1 {
+  margin: 0;
+  font-family: var(--font-brand);
+  font-weight: 500;
+  font-size: clamp(20px, 3.4vw, 28px);
+  letter-spacing: 0.01em;
+  color: var(--paper);
+  text-shadow: 0 1px 16px rgba(0,0,0,0.5);
+}
+
+/* ---------- Icon rail terpadu (pojok kiri bawah) ----------
+   Semua tombol aksi (notes list, note, share, vr, fullscreen, bahasa)
+   disatukan di sini jadi 1 kolom vertikal, tema glass bulat senada.
+   Denah/floorplan TIDAK ikut ke sini — tetap di .nav-panel kanan-bawah,
+   cuma dipinjami tampilan .rail-btn yang sama biar temanya nyambung. */
+
+.icon-rail {
+  position: absolute;
+  left: 22px;
+  bottom: 22px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.rail-btn {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.28);
+  color: var(--paper);
+  cursor: pointer;
+  overflow: hidden;
+  text-decoration: none;
+  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+.rail-btn svg { width: 19px; height: 19px; position: relative; z-index: 1; }
+.rail-btn .rail-vr-text {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+.rail-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent-soft);
+  opacity: 0;
+  transform: scale(0.5);
+  pointer-events: none;
+}
+.rail-btn:hover::before { animation: rail-wave 0.7s ease-out; }
+@keyframes rail-wave {
+  0%   { opacity: 0.9; transform: scale(0.6); }
+  100% { opacity: 0;   transform: scale(1.7); }
+}
+.rail-btn:hover {
+  border-color: var(--accent-soft);
+  background: var(--panel-strong);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.28), 0 0 0 1px var(--accent-dim);
+}
+.rail-btn:active { transform: scale(0.94); }
+.rail-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.rail-btn.is-active {
+  border-color: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* ---------- Share popup: QR code + copy link (ikut di icon-rail) ---------- */
+
+.share-nav { position: relative; }
+
+.share-popup {
+  position: absolute;
+  left: calc(100% + 14px);
+  bottom: 0;
+  z-index: 40;
+  width: max-content;
+  max-width: min(88vw, 264px);
+  padding: 18px;
+  border-radius: 16px;
+  background: var(--panel-strong);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.4), 0 0 0 1px var(--accent-dim);
+  text-align: center;
+}
+.share-popup[hidden] { display: none; }
+.share-popup-title {
+  margin: 0 0 10px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--paper-dim);
+}
+.share-qr-card {
+  display: inline-grid;
+  place-items: center;
+  padding: 14px;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+}
+.share-qr-card canvas { display: block; width: 188px; height: 188px; }
+.share-link-text {
+  margin: 10px 0 0;
+  max-width: 220px;
+  padding: 0 2px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--paper-dim);
+  word-break: break-all;
+}
+.share-popup-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.share-action-btn {
+  flex: 1 1 auto;
+  padding: 9px 8px;
+  border-radius: 9px;
+  border: 1px solid var(--panel-border);
+  background: var(--accent);
+  color: var(--paper);
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.share-action-btn:hover { background: var(--accent-glow); }
+.share-action-btn--ghost {
+  background: transparent;
+  color: var(--paper);
+}
+.share-action-btn--ghost:hover { background: var(--accent-dim); border-color: var(--accent-soft); }
+
+/* ---------- Toast (share feedback) ---------- */
+
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  z-index: 60;
+  transform: translate(-50%, 14px);
+  padding: 11px 20px;
+  border-radius: 999px;
+  background: var(--panel-strong);
+  border: 1px solid var(--accent-soft);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.35), 0 0 0 1px var(--accent-dim);
+  color: var(--paper);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.toast.visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.toast::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px 2px var(--accent-glow);
+  vertical-align: middle;
+}
+
+/* ---------- Bottom-right nav panel (floorplan) ---------- */
+
+.nav-panel {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+/* Floorplan panel */
+
+.floorplan-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 220px;
+  height: 320px;
+  min-width: 160px;
+  min-height: 220px;
+  max-width: min(92vw, 560px);
+  max-height: min(80vh, 720px);
+  padding: 10px;
+  border-radius: 16px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: 0 10px 32px rgba(0,0,0,0.38);
+}
+.floorplan-panel.resizing { transition: none; user-select: none; }
+.floorplan-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 8px 0;
+  flex-shrink: 0;
+}
+.floorplan-title {
+  margin: 0;
+  margin-left: 2px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--paper-dim);
+}
+.floorplan-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--paper-dim);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.icon-btn svg { width: 14px; height: 14px; }
+.icon-btn:hover {
+  background: var(--accent-dim);
+  color: var(--paper);
+}
+.icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+  pointer-events: none;
+}
+.floorplan-show-btn { display: none; }
+.floorplan-show-btn.visible { display: grid; }
+.floorplan-panel.hidden { display: none; }
+
+/* Notes list panel (bottom-left) — daftar semua catatan hotspot,
+   klik 1 catatan -> viewer pindah ke scene + pitch/yaw catatan itu. */
+.notes-nav-panel {
+  position: relative;
+}
+.notes-list-panel {
+  position: absolute;
+  left: calc(100% + 14px);
+  bottom: 0;
+  width: 240px;
+  height: 280px;
+}
+.notes-list-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 2px;
+}
+.notes-list-empty {
+  margin: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--paper-dim);
+  text-align: center;
+}
+.notes-list-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 9px;
+  border-radius: 9px;
+  border: 1px solid var(--panel-border);
+  background: rgba(0, 0, 0, 0.22);
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.notes-list-item:hover,
+.notes-list-item:focus-visible {
+  background: var(--accent-dim);
+  border-color: var(--accent-soft);
+  outline: none;
+}
+.notes-list-item-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.notes-list-item-number {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+}
+.notes-list-item-view {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.notes-list-item-text {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--paper);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Floor tabs (1F / 2F / 3F) */
+.floor-tabs {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+  margin: 0 0 8px 0;
+  padding: 3px;
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.28);
+}
+.floor-tab {
+  flex: 1;
+  padding: 5px 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--paper-dim);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+.floor-tab:hover { color: var(--paper); }
+.floor-tab.active {
+  background: var(--accent);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.floorplan-viewport {
+  position: relative;
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  border-radius: 9px;
+  overflow: hidden;
+  border: 1px solid var(--panel-border);
+  background: #10151f;
+  touch-action: none;
+  cursor: grab;
+}
+.floorplan-viewport.zoomed { cursor: grab; }
+.floorplan-viewport.zoomed:active { cursor: grabbing; }
+
+.floorplan-canvas {
+  position: absolute;
+  inset: 0;
+  transform-origin: center center;
+}
+.floorplan-canvas.smooth { transition: transform 0.2s ease; }
+.floorplan-canvas img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+  filter: saturate(0.85) brightness(0.92);
+}
+
+/* Zoom controls */
+.floorplan-zoom-controls {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* Resize handle — drag pojok kiri-atas untuk memperbesar/memperkecil window.
+   Diletakkan di kiri-atas karena panel ini nge-anchor di kanan-bawah layar,
+   jadi drag menjauh dari sudut itu = window membesar (sesuai arah tumbuhnya). */
+.floorplan-resize-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  cursor: nwse-resize;
+  touch-action: none;
+  opacity: 0.5;
+  transition: opacity 0.15s ease;
+  z-index: 5;
+  border-top-left-radius: 16px;
+}
+.floorplan-resize-handle:hover,
+.floorplan-resize-handle:active { opacity: 1; }
+.floorplan-resize-handle svg { width: 10px; height: 10px; color: var(--paper-dim); }
+.zoom-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  border: 1px solid var(--panel-border);
+  background: rgba(127, 164, 214, 0.06);
+  color: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+.zoom-btn.zoom-reset { width: auto; padding: 0 8px; font-size: 10px; letter-spacing: 0.03em; }
+.zoom-btn:hover:not(:disabled) { background: var(--accent-dim); }
+.zoom-btn:disabled { opacity: 0.35; cursor: default; }
+
+.viewpoint-dot {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  touch-action: manipulation;
+}
+.viewpoint-dot::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 1.5px solid var(--paper);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  transition: transform 0.15s ease;
+}
+.viewpoint-dot::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent);
+  opacity: 0.6;
+  animation: pulse 2.2s ease-out infinite;
+}
+.viewpoint-dot:hover::before { transform: scale(1.15); }
+.viewpoint-dot.active::before { background: var(--paper); }
+.viewpoint-dot:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 50%;
+}
+
+@keyframes pulse {
+  0%   { transform: scale(0.6); opacity: 0.6; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .viewpoint-dot::after { animation: none; }
+  .loading-ring { animation-duration: 1.6s; }
+  .brand-mark { animation: none; opacity: 1; transform: none; }
+  .brand-line { animation: none; width: 220px; opacity: 0.55; }
+  .brand-reveal::before { animation: none; opacity: 0.35; }
+  .loading-progress { animation: none; opacity: 1; transform: none; }
+}
+
+/* ---------- Mobile ---------- */
+
+@media (max-width: 560px) {
+  .hud-top { padding: 18px 16px; }
+  .hud-logo { width: clamp(64px, 20vw, 96px); margin-bottom: 6px; }
+  /* Fitur fullscreen dihilangkan di tampilan smartphone (share tetap tampil) */
+  #fullscreen-btn { display: none !important; }
+  .nav-panel { right: 14px; bottom: 14px; gap: 8px; }
+  .floorplan-panel { width: 150px; height: 220px; min-width: 120px; min-height: 160px; padding: 8px; }
+  .icon-rail { left: 14px; bottom: 14px; gap: 8px; }
+  .rail-btn { width: 40px; height: 40px; }
+  .rail-btn svg { width: 16px; height: 16px; }
+  .rail-btn .rail-vr-text { font-size: 11px; }
+  .notes-list-panel { width: 170px; height: 200px; min-width: 120px; min-height: 160px; padding: 8px; left: calc(100% + 10px); }
+  .share-popup { left: calc(100% + 10px); width: max-content; max-width: min(80vw, 210px); padding: 14px; }
+  .share-qr-card { padding: 10px; }
+  .share-qr-card canvas { width: 148px; height: 148px; }
+  .share-link-text { max-width: 170px; }
+  .brand-line { animation-name: brand-line-draw-sm; }
+  @keyframes brand-line-draw-sm {
+    0%   { width: 0;    opacity: 0; }
+    40%  { opacity: 0.9; }
+    100% { width: 120px; opacity: 0.55; }
+  }
+  .toast { font-size: 12px; padding: 10px 16px; bottom: 22px; max-width: calc(100vw - 32px); white-space: normal; text-align: center; }
+
+  /* Hotspot navigasi ke panorama lain — dikecilkan ~40% dari desktop,
+     lalu dikecilkan lagi 50% khusus mobile (permintaan lanjutan) */
+  .nav-hotspot-ring { width: 14px; height: 14px; }
+  .nav-hotspot-ring::after { inset: -3px; }
+  .nav-hotspot-arrow { width: 6px; height: 6px; }
+  .nav-hotspot-label { font-size: 9px; }
+
+  /* Hotspot content ikut dikecilkan 50% lagi, tetap lebih kecil dari nav-hotspot */
+  .content-hotspot-ring { width: 11px; height: 11px; }
+  .content-hotspot-ring::after { inset: -2px; }
+  .content-hotspot-icon { width: 5px; height: 5px; }
+  .content-hotspot-label { font-size: 8.5px; }
+}
+
+/* Hide default pannellum branding/controls we don't want */
+.pnlm-load-box, .pnlm-about-msg { display: none !important; }
+
+/* ---------- In-panorama scene navigation arrow ---------- */
+
+.nav-hotspot.pnlm-hotspot-base {
+  width: auto;
+  height: auto;
+}
+.nav-hotspot-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+}
+.nav-hotspot-ring {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1.5px solid var(--accent);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 14px rgba(0,0,0,0.3);
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+.nav-hotspot-ring::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent);
+  opacity: 0.55;
+  animation: pulse 2.4s ease-out infinite;
+}
+.nav-hotspot-arrow {
+  width: 20px;
+  height: 20px;
+  color: var(--paper);
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.7));
+}
+.nav-hotspot-inner:hover .nav-hotspot-ring {
+  transform: scale(1.08);
+  background: rgba(127, 164, 214, 0.22);
+  border-color: var(--paper);
+}
+.nav-hotspot-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--paper);
+  background: transparent;
+  padding: 0;
+  white-space: nowrap;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-hotspot-ring::after { animation: none; }
+}
+
+/* ---------- Hotspot CONTENT (foto/link/video/embed) ----------
+   Sengaja dibuat lebih kecil & berkedip lebih cepat daripada
+   .nav-hotspot supaya pengunjung langsung bisa membedakan mana
+   titik yang berpindah ruangan dan mana yang membuka info. */
+
+.content-hotspot.pnlm-hotspot-base {
+  width: auto;
+  height: auto;
+}
+.content-hotspot-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+}
+.content-hotspot-inner:focus-visible {
+  outline: 2px solid var(--content-accent);
+  outline-offset: 4px;
+  border-radius: 50%;
+}
+.content-hotspot-ring {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(227, 176, 108, 0.14);
+  border: 1.5px solid var(--content-accent);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+.content-hotspot-ring::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1.5px solid var(--content-accent);
+  opacity: 0.6;
+  animation: pulse 1.6s ease-out infinite;
+}
+.content-hotspot-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--content-accent);
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.7));
+}
+.content-hotspot-inner:hover .content-hotspot-ring {
+  transform: scale(1.1);
+  background: rgba(227, 176, 108, 0.24);
+  border-color: var(--content-accent-strong);
+}
+.content-hotspot-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--paper);
+  background: transparent;
+  padding: 0;
+  white-space: nowrap;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .content-hotspot-ring::after { animation: none; }
+}
+
+/* ---------- Hotspot CATATAN (icon 💬, dibuat pengunjung lewat note-finder.html) ----------
+   Sengaja pakai warna biru-kehijauan (bukan --content-accent) supaya
+   langsung beda dari hotspot navigasi & hotspot content. */
+
+.note-hotspot.pnlm-hotspot-base {
+  width: auto;
+  height: auto;
+}
+.note-hotspot-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+}
+.note-hotspot-inner:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 50%;
+}
+.note-hotspot-ring {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  border: 1.5px solid var(--accent);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+.note-hotspot-ring::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent);
+  opacity: 0.6;
+  animation: pulse 1.9s ease-out infinite;
+}
+.note-hotspot-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--accent);
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.7));
+}
+.note-hotspot-inner:hover .note-hotspot-ring {
+  transform: scale(1.1);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.note-hotspot-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--paper);
+  white-space: nowrap;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.5);
+}
+@media (prefers-reduced-motion: reduce) {
+  .note-hotspot-ring::after { animation: none; }
+}
+
+.note-modal-date {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--paper-dim);
+}
+
+/* ============================================================
+   Content modal — jendela pop-up untuk hotspot content
+   (foto / ikon+link / teks+link / link / video YouTube / embed)
+============================================================ */
+
+.content-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(4, 7, 12, 0.72);
+  backdrop-filter: blur(6px) saturate(120%);
+  -webkit-backdrop-filter: blur(6px) saturate(120%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.content-modal-overlay[hidden] { display: none; }
+.content-modal-overlay.visible { opacity: 1; }
+
+.content-modal {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px;
+  background: var(--panel-strong);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px var(--accent-dim);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  transform: translateY(10px) scale(0.98);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: hidden;
+}
+.content-modal-overlay.visible .content-modal {
+  transform: translateY(0) scale(1);
+}
+.content-modal.content-modal--expanded {
+  width: min(1100px, 96vw);
+  max-height: 94vh;
+}
+
+.content-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--panel-border);
+}
+.content-modal-title {
+  margin: 0;
+  font-family: var(--font-brand);
+  font-weight: 500;
+  font-size: 19px;
+  color: var(--paper);
+}
+.content-modal-actions {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+.content-modal-btn {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  border: 1px solid var(--panel-border);
+  background: rgba(127, 164, 214, 0.06);
+  color: var(--paper);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.content-modal-btn svg { width: 16px; height: 16px; }
+.content-modal-btn:hover { background: var(--accent-dim); border-color: var(--accent-soft); }
+
+.content-modal-body {
+  padding: 18px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Footer opsional — dipakai note-view.js untuk tombol Edit/Delete
+   di note-finder.html (lihat js/content-modal.js openCustomModal). */
+.content-modal-footer {
+  padding: 14px 18px;
+  border-top: 1px solid var(--panel-border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.content-modal-footer[hidden] { display: none; }
+
+.note-modal-confirm-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--paper-dim);
+}
+
+.note-modal-actions {
+  display: flex;
+  gap: 8px;
+}
+.note-modal-btn {
+  flex: 1 1 0;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 0;
+  font-weight: 600;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+.note-modal-btn--ghost {
+  background: rgba(242, 237, 230, 0.1);
+  color: var(--paper);
+}
+.note-modal-btn--ghost:hover { background: rgba(242, 237, 230, 0.16); }
+.note-modal-btn--danger {
+  background: #d1477a;
+  color: #fff;
+}
+.note-modal-btn--danger:hover { opacity: 0.88; }
+
+.content-modal-photo img,
+.content-modal-icon-img {
+  display: block;
+  width: 100%;
+  border-radius: 12px;
+  object-fit: cover;
+}
+.content-modal-icon-img {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  object-fit: contain;
+  background: rgba(255,255,255,0.06);
+  padding: 8px;
+}
+
+.content-modal-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.content-modal-link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 13px;
+  text-decoration: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.content-modal-link-btn:hover { opacity: 0.88; }
+.content-modal-link-btn:active { transform: scale(0.97); }
+.content-modal-link-btn--solo { align-self: center; }
+
+.content-modal-icon-link,
+.content-modal-text-link {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.content-modal-video,
+.content-modal-embed {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+}
+.content-modal-video iframe,
+.content-modal-embed iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.content-modal--expanded .content-modal-video,
+.content-modal--expanded .content-modal-embed {
+  aspect-ratio: auto;
+  height: min(76vh, 640px);
+}
+
+@media (max-width: 560px) {
+  .content-modal-overlay { padding: 0; align-items: flex-end; }
+  .content-modal { width: 100%; max-height: 88vh; border-radius: 18px 18px 0 0; }
+  .content-modal.content-modal--expanded { max-height: 96vh; }
+  .content-modal-title { font-size: 16px; }
+}

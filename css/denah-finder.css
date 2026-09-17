@@ -1,0 +1,197 @@
+/**
+ * Styling khusus untuk denah-finder.html.
+ * Memakai ulang class .floorplan-viewport / .floorplan-canvas /
+ * .viewpoint-dot dari style.css supaya persentase x/y yang
+ * dihasilkan di sini cocok dengan yang dipakai saat tur berjalan
+ * (gambar sama-sama pakai object-fit: contain).
+ *
+ * #denah-viewport TIDAK diberi height/aspect-ratio tetap di sini
+ * karena itu diatur otomatis oleh js/denah-finder.js begitu
+ * gambar denah selesai dimuat (aspect-ratio disamakan dengan
+ * ukuran asli file gambarnya) — supaya cocok untuk gambar denah
+ * ukuran berapapun tanpa perlu edit CSS ini.
+ */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--ink);
+  overflow: auto;
+  font-family: var(--font-ui);
+  color: var(--paper);
+}
+
+#finder-app {
+  min-height: 100dvh;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+/* ---------- Area denah ---------- */
+
+#denah-area {
+  flex: 1 1 480px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+
+#denah-viewport {
+  width: min(90vw, 480px);
+  cursor: crosshair;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+}
+
+/* Titik yang sudah ditambahkan ke daftar */
+.viewpoint-dot.saved::before { background: var(--teal); }
+
+/* Titik hasil klik terakhir, belum ditambahkan */
+.viewpoint-dot.pending::before {
+  background: transparent;
+  border: 2px solid var(--clay);
+}
+.viewpoint-dot.pending::after { border-style: dashed; }
+
+/* ---------- Sidebar (dipakai bersama gaya dari pitch-finder.css) ---------- */
+
+#sidebar {
+  flex: 0 0 320px;
+  min-height: 100dvh;
+  overflow-y: auto;
+  padding: 18px;
+  background: #1c1815;
+  border-left: 1px solid var(--panel-border);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.finder-title { margin: 0; font-size: 15px; font-weight: 600; }
+.finder-hint { margin: -8px 0 0; font-size: 12px; line-height: 1.5; color: var(--paper-dim); }
+
+.finder-field label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--paper-dim);
+  margin-bottom: 6px;
+}
+.finder-select {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--paper);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  padding: 8px 9px;
+}
+
+#coord-display {
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(201, 121, 61, 0.12);
+  border: 1px solid var(--clay-soft);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.8;
+}
+#coord-display .placeholder { color: var(--paper-dim); font-size: 12px; }
+#coord-display button {
+  margin-top: 6px;
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 0;
+  background: var(--clay);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+#coord-display button:hover { opacity: 0.9; }
+
+.point-list-header { display: flex; align-items: center; justify-content: space-between; }
+.point-list-header p {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--paper-dim);
+}
+
+#point-list { display: flex; flex-direction: column; gap: 6px; }
+.point-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  background: rgba(242, 237, 230, 0.05);
+  border: 1px solid rgba(242, 237, 230, 0.08);
+}
+.point-coord {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--paper-dim);
+  white-space: nowrap;
+}
+.point-label-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--paper);
+  font-size: 11.5px;
+  padding: 4px 6px;
+}
+.point-remove-btn {
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  color: var(--paper-dim);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 4px;
+}
+.point-remove-btn:hover { color: #f0b3a3; }
+
+.point-empty { font-size: 12px; color: var(--paper-dim); }
+
+#copy-all-btn {
+  width: 100%;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 9px 0;
+  background: rgba(242, 237, 230, 0.08);
+  color: var(--paper);
+  font-weight: 600;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+#copy-all-btn:hover { background: rgba(242, 237, 230, 0.14); }
+
+#snippet-output {
+  width: 100%;
+  min-height: 90px;
+  resize: vertical;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  padding: 8px;
+}
+
+@media (max-width: 720px) {
+  #sidebar { border-left: none; border-top: 1px solid var(--panel-border); min-height: auto; }
+}

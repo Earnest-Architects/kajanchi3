@@ -1,0 +1,140 @@
+#note-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ink);
+  transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.9s;
+}
+
+#note-gate.is-leaving {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.note-gate-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 30%, var(--accent-dim), transparent 60%),
+    var(--ink);
+  animation: note-gate-bg-pulse 6s ease-in-out infinite;
+}
+
+@keyframes note-gate-bg-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+.note-gate-card {
+  position: relative;
+  z-index: 1;
+  width: min(360px, 88vw);
+  padding: 40px 32px;
+  border-radius: 18px;
+  background: var(--panel-strong);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(18px);
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.02);
+  opacity: 0;
+  transform: translateY(24px) scale(0.96);
+  animation: note-gate-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.15s forwards;
+}
+
+@keyframes note-gate-in {
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.note-gate-eyebrow {
+  margin: 0 0 6px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.note-gate-title {
+  margin: 0 0 10px;
+  font-family: var(--font-brand);
+  font-size: 1.9rem;
+  font-weight: 500;
+  color: var(--paper);
+}
+
+.note-gate-hint {
+  margin: 0 0 24px;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+#note-gate-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#note-gate-input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--paper);
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+
+#note-gate-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+#note-gate-form button {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: filter 0.2s, transform 0.2s;
+}
+
+#note-gate-form button:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.note-gate-error {
+  margin: 14px 0 0;
+  font-size: 0.8rem;
+  color: #ff8a8a;
+}
+
+.note-gate-card.is-shaking {
+  animation: note-gate-shake 0.4s;
+}
+
+@keyframes note-gate-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+
+#note-app {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.8s ease;
+}
+
+#note-app.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}

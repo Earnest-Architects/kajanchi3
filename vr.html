@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>VR Tour | Earnest Architects</title>
+<meta name="description" content="360 virtual tour - VR headset version by Earnest Architects." />
+
+<link rel="icon" href="favicon/favicon.ico" sizes="any">
+<link rel="icon" href="favicon/favicon-32x32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="favicon/favicon-16x16.png" type="image/png" sizes="16x16">
+<link rel="apple-touch-icon" href="favicon/apple-touch-icon.png">
+
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<link rel="stylesheet" href="css/vr.css" />
+</head>
+<body>
+
+<a id="back-link" href="index.html">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M15 18l-6-6 6-6"/>
+  </svg>
+  Back to tour
+</a>
+
+<p id="vr-hint">Put on your headset and tap "Enter VR" in the bottom-right corner &middot; look at a ring hotspot to move</p>
+
+<a-scene loading-screen="dotsColor: white; backgroundColor: #101010" vr-mode-ui="enabled: true">
+
+  <!-- "world": pembungkus sky + hotspots + panel content 3D + garis
+       penghubungnya, DIPISAH dari <a-scene> root supaya bisa diputar
+       (rotation.y) saat recenter di masuk sesi VR sungguhan. Alasan:
+       di WebXR immersive (headset asli), arah "depan" (yaw 0) TIDAK
+       selalu = arah -Z aplikasi seperti di mode desktop/magic-window
+       — itu ditentukan oleh reference space ('local-floor'), yang
+       biasanya mengacu ke arah Guardian/boundary di-setup, bukan ke
+       arah kamu menghadap saat itu. Makanya hotspot (dan panel content
+       yang posisinya dihitung relatif ke hotspot-nya) bisa "meleset"
+       walau rumus pitch/yaw & layout panelnya sendiri sudah benar.
+       Lihat js/vr.js fungsi recenterWorld() untuk kompensasinya —
+       TIDAK ADA perubahan pada logic/layout panel content itu sendiri,
+       cuma dipindah jadi child dari "world" ini. -->
+  <a-entity id="world">
+    <a-sky id="sky" src="" rotation="0 -90 0"></a-sky>
+
+    <!-- Hotspot navigasi + content (dari pitchPoints di content.js), diisi otomatis oleh js/vr.js -->
+    <a-entity id="hotspots"></a-entity>
+
+    <!-- Panel content 3D (foto/link/teks/video/embed): muncul di sini saat
+         hotspot content diklik, diisi & diposisikan otomatis oleh js/vr.js
+         tepat di depan arah pandang pengguna saat itu — supaya tetap
+         terlihat & bisa dipakai selama sesi WebXR immersive sungguhan
+         (bukan overlay DOM 2D yang hilang di dalam headset). -->
+    <a-entity id="contentPanel"></a-entity>
+
+    <!-- Garis tipis penghubung dari hotspot content ke panel-nya, supaya
+         jelas panel itu "milik" hotspot yang mana meski panel digeser
+         sedikit ke posisi yang lebih nyaman dibaca. Diisi & dihapus
+         otomatis oleh js/vr.js bersamaan dengan contentPanel. -->
+    <a-entity id="contentLink"></a-entity>
+  </a-entity>
+
+  <a-entity id="cameraRig" position="0 1.6 0">
+    <a-camera id="camera" look-controls wasd-controls="enabled: false" position="0 0 0">
+      <a-cursor
+        fuse="true"
+        fuse-timeout="900"
+        raycaster="objects: .clickable"
+        geometry="primitive: ring; radiusInner: 0.008; radiusOuter: 0.012"
+        material="color: #f5f2ea; shader: flat; opacity: 0.9">
+      </a-cursor>
+    </a-camera>
+  </a-entity>
+
+  <!-- Zoom HUD: bar vertikal mirip volume. SENGAJA ditaruh di world space
+       (bukan child <a-camera>) supaya bisa benar-benar "ditoleh" dan kena
+       reticle — kalau dia child kamera, reticle (yang selalu lurus ke
+       depan kamera) tidak akan pernah bisa menjangkaunya karena
+       keduanya ikut berputar bersamaan. Posisi ini kira-kira di
+       bawah-kanan pandangan awal, cukup dekat supaya gampang ditoleh.
+       (Atribut "face-point" dipasang lewat js/vr.js, bukan di sini,
+       supaya urutan pendaftaran komponennya aman.) -->
+  <a-entity id="zoomHud" position="1.1 1.05 -1.8"></a-entity>
+
+  <!-- Kontroler Quest/headset lain: laser pointer otomatis muncul kalau ada controller -->
+  <a-entity laser-controls="hand: left" raycaster="objects: .clickable; far: 10"></a-entity>
+  <a-entity laser-controls="hand: right" raycaster="objects: .clickable; far: 10"></a-entity>
+
+</a-scene>
+
+<script type="module" src="js/vr.js"></script>
+</body>
+</html>

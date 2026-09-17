@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Denah Finder — cari koordinat titik pada denah (%)</title>
+
+<link rel="icon" href="favicon/favicon.ico" sizes="any">
+<link rel="icon" href="favicon/favicon-32x32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="favicon/favicon-16x16.png" type="image/png" sizes="16x16">
+<link rel="apple-touch-icon" href="favicon/apple-touch-icon.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/denah-finder.css" />
+</head>
+<body>
+
+<div id="finder-app">
+
+  <div id="denah-area">
+    <div class="floorplan-viewport" id="denah-viewport">
+      <div class="floorplan-canvas" id="denah-canvas">
+        <img id="denah-img" src="" alt="Gambar denah" draggable="false" />
+        <!-- titik yang sudah/sedang diambil diinjeksikan oleh js/denah-finder.js -->
+      </div>
+    </div>
+  </div>
+
+  <div id="sidebar">
+    <p class="finder-title">📍 Denah Finder</p>
+    <p class="finder-hint">
+      Pilih lantai, lalu klik posisi yang diinginkan pada gambar denah
+      untuk mendapatkan koordinat x% dan y%-nya.
+    </p>
+
+    <div class="finder-field">
+      <label for="floor-select">Lantai</label>
+      <select id="floor-select" class="finder-select"></select>
+    </div>
+
+    <div class="finder-field">
+      <label for="target-select">Target (view 360 tujuan titik ini)</label>
+      <select id="target-select" class="finder-select"></select>
+    </div>
+
+    <div id="coord-display">
+      <span class="placeholder">Klik di gambar denah untuk melihat x% &amp; y%…</span>
+    </div>
+
+    <div class="point-list-header">
+      <p>Daftar titik (sesi ini)</p>
+    </div>
+    <div id="point-list"></div>
+    <p class="point-empty" id="point-empty">Belum ada titik ditambahkan.</p>
+
+    <button type="button" id="copy-all-btn">Copy sebagai kode points</button>
+    <textarea id="snippet-output" readonly placeholder="Hasil copy akan muncul di sini…"></textarea>
+  </div>
+
+</div>
+
+<script type="module" src="js/denah-finder.js"></script>
+</body>
+</html>
