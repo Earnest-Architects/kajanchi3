@@ -97,7 +97,7 @@ function initThree() {
   // objek jadi tidak akan pernah "kabur" keluar jendela waktu rotate.
   controls.enablePan = false;
   controls.enableZoom = true;
-  controls.zoomSpeed = 0.6; // scroll zoom dulu terlalu liar, diperhalus
+  controls.zoomSpeed = 0.25; // makin kecil biar 1x scroll gak langsung mentok
   controls.rotateSpeed = 0.8;
   // Batas sementara, akan diperketat relatif ukuran model lewat
   // frameCameraToBox() setelah model selesai di-load.
@@ -164,6 +164,7 @@ function initThree() {
 
   bindSliderEvents();
   bindResizeHandle();
+  bindWheelSmoothing();
   resizeObserver = new ResizeObserver(onViewportResize);
   resizeObserver.observe(viewport);
   onViewportResize();
@@ -179,10 +180,11 @@ function frameCameraToBox(box) {
   camera.updateProjectionMatrix();
   controls.target.set(0, 0, 0);
 
-  // Batas zoom relatif ke ukuran model: zoom-in tidak sampai nembus
-  // objek, zoom-out tidak sampai objeknya jadi titik kecil/hilang.
-  controls.minDistance = maxDim * 0.35;
-  controls.maxDistance = maxDim * 3.5;
+  // Batas zoom relatif ke ukuran model, dilebarkan biar tidak langsung
+  // mentok di batas cuma dengan 1x scroll (masih dibatasi, cuma jaraknya
+  // dilonggarin biar transisinya smooth & bertahap).
+  controls.minDistance = maxDim * 0.15;
+  controls.maxDistance = maxDim * 6;
   controls.update();
 
   // Simpan posisi awal ini supaya tombol Reset bisa mengembalikan
@@ -368,6 +370,35 @@ function restorePanelSize() {
   } catch (_) {
     /* data korup — pakai default dari CSS */
   }
+}
+
+/* ---------- Wheel zoom smoothing ----------
+ * Sebagian mouse/trackpad ngirim deltaY yang gede banget per event
+ * (scroll cepat / high-res wheel), jadi 1x scroll fisik = banyak
+ * "step" zoom sekaligus -> kerasa lompat jauh. Di-clamp dulu di sini
+ * sebelum diteruskan ke OrbitControls, biar tetap smooth & bertahap. */
+function bindWheelSmoothing() {
+  const MAX_DELTA = 40;
+  canvas.addEventListener(
+    "wheel",
+    (e) => {
+      const clamped = Math.max(-MAX_DELTA, Math.min(MAX_DELTA, e.deltaY));
+      if (clamped === e.deltaY) return; // delta udah wajar, biarin lewat apa adanya
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      canvas.dispatchEvent(
+        new WheelEvent("wheel", {
+          deltaY: clamped,
+          deltaMode: e.deltaMode,
+          clientX: e.clientX,
+          clientY: e.clientY,
+          bubbles: true,
+          cancelable: true,
+        })
+      );
+    },
+    { passive: false, capture: true }
+  );
 }
 
 function bindResizeHandle() {
