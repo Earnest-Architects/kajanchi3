@@ -303,6 +303,17 @@ html, body {
   will-change: filter, opacity;
 }
 
+/* ---------- Auto Tour: kontrol prev/pause/next/hide (muncul saat PLAY aktif) ---------- */
+.auto-tour-controls {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+.auto-tour-controls.hidden { display: none; }
+
+/* ---------- Auto Tour: sembunyikan semua ikon hotspot ---------- */
+#panorama.hotspots-hidden .pnlm-hotspot-base { display: none !important; }
+
 /* ---------- Share popup: QR code + copy link (ikut di icon-rail) ---------- */
 
 .share-nav { position: relative; }
