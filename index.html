@@ -174,6 +174,62 @@
     </div>
   </div>
 
+  <!-- ============ Mini 3D (model .glb, orbit/pan/zoom + section X/Y/Z) ============ -->
+  <div class="mini3d-nav-panel">
+    <div class="floorplan-panel mini3d-panel hidden" id="mini3d-panel">
+      <div class="floorplan-header">
+        <p class="floorplan-title">Mini 3D</p>
+        <button id="mini3d-hide-btn" class="icon-btn" aria-label="Hide mini 3D" title="Hide mini 3D">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="mini3d-viewport" id="mini3d-viewport">
+        <canvas id="mini3d-canvas"></canvas>
+        <p class="mini3d-loading" id="mini3d-loading">Loading model…</p>
+      </div>
+
+      <div class="mini3d-sections" id="mini3d-sections">
+        <div class="mini3d-section-row">
+          <span class="mini3d-axis-label mini3d-axis-x">X</span>
+          <div class="mini3d-dual-slider">
+            <input type="range" id="mini3d-x-min" class="mini3d-range mini3d-range-low" min="0" max="1" step="0.001" value="0">
+            <input type="range" id="mini3d-x-max" class="mini3d-range mini3d-range-high" min="0" max="1" step="0.001" value="1">
+          </div>
+        </div>
+        <div class="mini3d-section-row">
+          <span class="mini3d-axis-label mini3d-axis-y">Y</span>
+          <div class="mini3d-dual-slider">
+            <input type="range" id="mini3d-y-min" class="mini3d-range mini3d-range-low" min="0" max="1" step="0.001" value="0">
+            <input type="range" id="mini3d-y-max" class="mini3d-range mini3d-range-high" min="0" max="1" step="0.001" value="1">
+          </div>
+        </div>
+        <div class="mini3d-section-row">
+          <span class="mini3d-axis-label mini3d-axis-z">Z</span>
+          <div class="mini3d-dual-slider">
+            <input type="range" id="mini3d-z-min" class="mini3d-range mini3d-range-low" min="0" max="1" step="0.001" value="0">
+            <input type="range" id="mini3d-z-max" class="mini3d-range mini3d-range-high" min="0" max="1" step="0.001" value="1">
+          </div>
+        </div>
+        <button type="button" id="mini3d-reset-btn" class="zoom-btn zoom-reset mini3d-reset-btn" title="Reset section">Reset</button>
+      </div>
+
+      <div class="mini3d-resize-handle" id="mini3d-resize-handle" title="Drag to resize (double-click to reset)" aria-hidden="true">
+        <svg viewBox="0 0 12 12" fill="currentColor">
+          <circle cx="10" cy="2" r="1"/>
+          <circle cx="10" cy="6" r="1"/>
+          <circle cx="6" cy="2" r="1"/>
+        </svg>
+      </div>
+    </div>
+
+    <button id="mini3d-show-btn" class="rail-btn floorplan-show-btn visible" aria-label="Show mini 3D" title="Show mini 3D">
+      <span class="rail-vr-text">3D</span>
+    </button>
+  </div>
+
   <button id="print-scene-btn" class="rail-btn" aria-label="Print this view" title="Print this view">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="6 9 6 2 18 2 18 9"/>
@@ -243,5 +299,6 @@
 <script type="module" src="js/floorplan.js"></script>
 <script type="module" src="js/notes-list.js"></script>
 <script type="module" src="js/auto-tour.js"></script>
+<script type="module" src="js/mini3d.js"></script>
 </body>
 </html>
