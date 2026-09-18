@@ -10,8 +10,9 @@
  *      sebelumnya habis, lalu balik ke lagu pertama lagi)
  *   3) 360 auto-rotate di scene pertama sesuai `autoTour.sequence`
  *      di content.js, lalu pindah ke scene berikutnya dengan
- *      transisi crossfade + blur, dan seterusnya berurutan &
- *      berulang selama mode masih aktif.
+ *      transisi fade-to-black, dan seterusnya berurutan &
+ *      berulang selama mode masih aktif. Arah rotasi bergantian
+ *      kiri/kanan tiap scene.
  * Klik lagi (atau keluar fullscreen) untuk menghentikan sepenuhnya.
  *
  * Selama mode aktif, muncul 4 tombol kontrol tambahan:
@@ -105,7 +106,7 @@ if (hasAllControls && autoTour && autoTour.sequence && autoTour.sequence.length)
   music.addEventListener("ended", playNextTrack);
 
   function clearOverlays() {
-    panoramaEl.querySelectorAll(".auto-tour-blur-overlay").forEach((el) => el.remove());
+    panoramaEl.querySelectorAll(".auto-tour-fade-overlay").forEach((el) => el.remove());
   }
 
   /* ---------- Sinyal "scene beneran udah siap" ----------
@@ -130,49 +131,54 @@ if (hasAllControls && autoTour && autoTour.sequence && autoTour.sequence.length)
     });
   }
 
-  /** Crossfade + blur dari scene sekarang ke scene berikutnya.
-   *  Rotate langsung jalan begitu Pannellum selesai switch scene
-   *  di baliknya (jauh lebih cepat dari transitionDuration) — gak
-   *  perlu nunggu blur-overlay-nya kelar fade out dulu, jadi gak
-   *  ada jeda diam sebelum scene baru mulai berputar. */
-  async function crossfadeTo(nextId) {
-    const canvas = panoramaEl.querySelector("canvas");
-    if (!canvas) {
-      const ready = waitSceneReady();
-      viewer.loadScene(nextId);
-      await ready;
-      if (active) startRotationForCurrentStep();
+  function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /** Transisi fade-to-black ke scene berikutnya: layar gelap dulu
+   *  (half durasi), scene diganti & rotasi mulai jalan SAAT MASIH
+   *  GELAP, baru layar terang lagi (half durasi) — jadi begitu
+   *  kelihatan, scene baru udah muter duluan, gak ada jeda diam. */
+  async function transitionTo(nextId) {
+    const half = Math.max(0, autoTour.transitionDuration / 2);
+
+    const overlay = document.createElement("div");
+    overlay.className = "auto-tour-fade-overlay";
+    panoramaEl.appendChild(overlay);
+
+    requestAnimationFrame(() => {
+      overlay.style.transition = `opacity ${half}ms ease`;
+      overlay.style.opacity = "1";
+    });
+    await sleep(half);
+    if (!active) {
+      overlay.remove();
       return;
     }
-    const snap = document.createElement("canvas");
-    snap.width = canvas.width;
-    snap.height = canvas.height;
-    snap.className = "auto-tour-blur-overlay";
-    snap.getContext("2d").drawImage(canvas, 0, 0);
-    panoramaEl.appendChild(snap);
 
     const ready = waitSceneReady();
     viewer.loadScene(nextId);
     await ready;
 
     if (!active) {
-      snap.remove();
+      overlay.remove();
       return;
     }
     startRotationForCurrentStep();
 
     requestAnimationFrame(() => {
-      snap.style.transition = `filter ${autoTour.transitionDuration}ms ease, opacity ${autoTour.transitionDuration}ms ease`;
-      snap.style.filter = "blur(28px)";
-      snap.style.opacity = "0";
+      overlay.style.opacity = "0";
     });
-
-    setTimeout(() => snap.remove(), autoTour.transitionDuration);
+    await sleep(half);
+    overlay.remove();
   }
 
   function startRotationForCurrentStep() {
     if (paused) return;
-    viewer.startAutoRotate(autoTour.rotateSpeed);
+    // Arah rotasi bervariasi: scene index genap muter satu arah,
+    // ganjil muter arah sebaliknya.
+    const direction = sequencePos % 2 === 0 ? 1 : -1;
+    viewer.startAutoRotate(autoTour.rotateSpeed * direction);
     // Aktifkan auto-resume bawaan Pannellum: drag manual (mouse/
     // sentuh) otomatis menghentikan rotasi selama drag berlangsung,
     // lalu rotasi otomatis lanjut lagi `resumeDelay` ms setelah
@@ -192,7 +198,7 @@ if (hasAllControls && autoTour && autoTour.sequence && autoTour.sequence.length)
         started = true;
         startRotationForCurrentStep();
       } else {
-        await crossfadeTo(step.id);
+        await transitionTo(step.id);
         if (!active) return;
       }
 

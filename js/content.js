@@ -69,21 +69,21 @@ export const notesEnabled = true;
 ============================================================ */
 export const autoTour = {
   music: ["assets/bgm/asset1.mp3", "assets/bgm/asset2.mp3"],
-  rotateSpeed: 6,
-  transitionDuration: 2200,
+  rotateSpeed: 2,
+  transitionDuration: 3000,
   // Berapa lama (ms) menunggu setelah pengunjung melepas mouse/jari
   // sebelum 360 otomatis berputar lagi (drag manual tetap berfungsi
   // penuh selama mode PLAY aktif; ini cuma jeda sebelum auto-rotate
   // lanjut lagi).
   resumeDelay: 3000,
   sequence: [
-    { id: "view7", duration: 8000 },
-    { id: "view1", duration: 10000 },
-    { id: "view2", duration: 10000 },
-    { id: "view3", duration: 10000 },
-    { id: "view4", duration: 10000 },
-    { id: "view5", duration: 10000 },
-    { id: "view6", duration: 10000 },
+    { id: "view7", duration: 16000 },
+    { id: "view1", duration: 18000 },
+    { id: "view2", duration: 18000 },
+    { id: "view3", duration: 18000 },
+    { id: "view4", duration: 18000 },
+    { id: "view5", duration: 18000 },
+    { id: "view6", duration: 18000 },
   ],
 };
 
