@@ -96,8 +96,7 @@ function initThree() {
   // Pan dimatikan supaya target orbit selalu diam di tengah objek —
   // objek jadi tidak akan pernah "kabur" keluar jendela waktu rotate.
   controls.enablePan = false;
-  controls.enableZoom = true;
-  controls.zoomSpeed = 0.25; // makin kecil biar 1x scroll gak langsung mentok
+  controls.enableZoom = false; // zoom bawaan dimatikan, dipakai manual (lihat bindManualZoom)
   controls.rotateSpeed = 0.8;
   // Batas sementara, akan diperketat relatif ukuran model lewat
   // frameCameraToBox() setelah model selesai di-load.
@@ -164,7 +163,7 @@ function initThree() {
 
   bindSliderEvents();
   bindResizeHandle();
-  bindWheelSmoothing();
+  bindManualZoom();
   resizeObserver = new ResizeObserver(onViewportResize);
   resizeObserver.observe(viewport);
   onViewportResize();
@@ -372,32 +371,38 @@ function restorePanelSize() {
   }
 }
 
-/* ---------- Wheel zoom smoothing ----------
- * Sebagian mouse/trackpad ngirim deltaY yang gede banget per event
- * (scroll cepat / high-res wheel), jadi 1x scroll fisik = banyak
- * "step" zoom sekaligus -> kerasa lompat jauh. Di-clamp dulu di sini
- * sebelum diteruskan ke OrbitControls, biar tetap smooth & bertahap. */
-function bindWheelSmoothing() {
-  const MAX_DELTA = 40;
+/* ---------- Zoom manual (ganti punya OrbitControls) ----------
+ * Ternyata zoom bawaan OrbitControls itu ngitung besar-kecilnya step
+ * dari besaran deltaY mentah si mouse/trackpad — dan listener wheel-nya
+ * sendiri kepasang duluan (sebelum listener kita), jadi coba
+ * "meredam" delta dari luar percuma, dia tetap kepakai duluan.
+ * Makanya di sini zoom bawaan dimatikan total (enableZoom = false) dan
+ * diganti logika sendiri: tiap 1x event wheel cuma menggeser jarak
+ * kamera sekian PERSEN TETAP (ZOOM_STEP) — arah ambil dari tanda
+ * deltaY-nya doang, besarannya diabaikan. Jadi seberapa pun kasar
+ * scroll-nya, satu "tick" tetap cuma gerak dikit & konsisten. */
+function bindManualZoom() {
+  const ZOOM_STEP = 0.06; // 6% jarak per tick — kecilkan lagi kalau masih kurang halus
+
   canvas.addEventListener(
     "wheel",
     (e) => {
-      const clamped = Math.max(-MAX_DELTA, Math.min(MAX_DELTA, e.deltaY));
-      if (clamped === e.deltaY) return; // delta udah wajar, biarin lewat apa adanya
+      if (!camera || !controls) return;
       e.preventDefault();
-      e.stopImmediatePropagation();
-      canvas.dispatchEvent(
-        new WheelEvent("wheel", {
-          deltaY: clamped,
-          deltaMode: e.deltaMode,
-          clientX: e.clientX,
-          clientY: e.clientY,
-          bubbles: true,
-          cancelable: true,
-        })
-      );
+
+      const dir = e.deltaY > 0 ? 1 : -1; // out : in — besar delta-nya diabaikan sengaja
+      const toCamera = camera.position.clone().sub(controls.target);
+      let distance = toCamera.length();
+      if (distance < 1e-6) return;
+
+      distance *= 1 + dir * ZOOM_STEP;
+      distance = Math.max(controls.minDistance, Math.min(controls.maxDistance, distance));
+
+      toCamera.normalize().multiplyScalar(distance);
+      camera.position.copy(controls.target).add(toCamera);
+      controls.update();
     },
-    { passive: false, capture: true }
+    { passive: false }
   );
 }
 
