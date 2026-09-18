@@ -292,6 +292,17 @@ html, body {
   color: var(--accent);
 }
 
+/* ---------- Auto Tour: overlay blur transisi antar scene ---------- */
+.auto-tour-blur-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+  pointer-events: none;
+  will-change: filter, opacity;
+}
+
 /* ---------- Share popup: QR code + copy link (ikut di icon-rail) ---------- */
 
 .share-nav { position: relative; }
