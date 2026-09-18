@@ -60,6 +60,8 @@ let controls = null;
 let modelRoot = null;
 let clippingPlanes = null; // { xMin, xMax, yMin, yMax, zMin, zMax } -> THREE.Plane
 let modelBox = null; // THREE.Box3 asli model (sebelum di-center)
+let planeList = null; // array 6 THREE.Plane (urutan sama kayak clippingPlanes)
+let capMeshes = null; // { xMin, xMax, ... } -> THREE.Mesh (tutup solid hitam)
 let initialCameraPos = null; // posisi kamera awal, dipakai tombol Reset
 let initialTarget = null; // target orbit awal, dipakai tombol Reset
 let animId = null;
@@ -76,7 +78,7 @@ function initThree() {
   camera = new THREE.PerspectiveCamera(45, 1, 0.01, 1000);
   camera.position.set(2.4, 1.8, 2.6);
 
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, stencil: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.localClippingEnabled = true;
@@ -113,7 +115,8 @@ function initThree() {
     zMin: new THREE.Plane(new THREE.Vector3(0, 0, 1), 0),
     zMax: new THREE.Plane(new THREE.Vector3(0, 0, -1), 0),
   };
-  const planeList = Object.values(clippingPlanes);
+  planeList = Object.values(clippingPlanes);
+  capMeshes = {};
 
   new GLTFLoader().load(
     MODEL_URL,
@@ -133,16 +136,28 @@ function initThree() {
         mats.forEach((mat) => {
           if (!mat) return;
           // Dua sisi diaktifkan supaya waktu di-section, bagian dalam yang
-          // "terbuka" tetap kelihatan permukaannya — simple, tanpa cap solid.
+          // "terbuka" tetap kelihatan permukaannya (sebelum ditimpa cap solid).
           mat.side = THREE.DoubleSide;
           mat.clippingPlanes = planeList;
           mat.clipShadows = false;
           mat.needsUpdate = true;
         });
+
+        // Grup stensil per bidang potong, ditempel sbg child mesh ini
+        // (otomatis ikut transform lokal mesh-nya) — dipakai buat tau
+        // area mana yang harus ditimpa tutup solid hitam di bawah.
+        Object.values(clippingPlanes).forEach((plane, i) => {
+          const stencilGroup = createPlaneStencilGroup(child.geometry, plane, i + 1);
+          child.add(stencilGroup);
+        });
       });
 
       scene.add(modelRoot);
       modelBox = new THREE.Box3().setFromObject(modelRoot);
+
+      const boxSize = modelBox.getSize(new THREE.Vector3());
+      const maxDim = Math.max(boxSize.x, boxSize.y, boxSize.z, 0.01);
+      createClippingCaps(maxDim);
 
       frameCameraToBox(modelBox);
       resetSectionPlanes();
@@ -167,6 +182,90 @@ function initThree() {
   resizeObserver = new ResizeObserver(onViewportResize);
   resizeObserver.observe(viewport);
   onViewportResize();
+}
+
+/* ---------- Cap solid hitam di permukaan potongan (stencil clipping) ----------
+ * Trik standar three.js: tiap bidang potong dapat 2 "lapisan" —
+ *  1) createPlaneStencilGroup: render geometri model 2x (belakang &
+ *     depan) cuma nulis ke stencil buffer (gak nulis warna), jadi
+ *     stencil-nya kehitung ganjil persis di area yg "terbuka"/terpotong.
+ *  2) createClippingCaps: satu bidang datar gede warna hitam solid,
+ *     cuma digambar di tempat stencil-nya ganjil itu (jadi nutup pas
+ *     di permukaan potongan, bukan keliatan bolong/tembus pandang).
+ * Posisi tiap cap di-update tiap slider section digeser (lihat
+ * applyPlane -> updateCapTransform).
+ */
+function createPlaneStencilGroup(geometry, plane, renderOrder) {
+  const group = new THREE.Group();
+  const baseMat = new THREE.MeshBasicMaterial();
+  baseMat.depthWrite = false;
+  baseMat.depthTest = false;
+  baseMat.colorWrite = false;
+  baseMat.stencilWrite = true;
+  baseMat.stencilFunc = THREE.AlwaysStencilFunc;
+
+  const backMat = baseMat.clone();
+  backMat.side = THREE.BackSide;
+  backMat.clippingPlanes = [plane];
+  backMat.stencilFail = THREE.IncrementWrapStencilOp;
+  backMat.stencilZFail = THREE.IncrementWrapStencilOp;
+  backMat.stencilZPass = THREE.IncrementWrapStencilOp;
+  const backMesh = new THREE.Mesh(geometry, backMat);
+  backMesh.renderOrder = renderOrder;
+  group.add(backMesh);
+
+  const frontMat = baseMat.clone();
+  frontMat.side = THREE.FrontSide;
+  frontMat.clippingPlanes = [plane];
+  frontMat.stencilFail = THREE.DecrementWrapStencilOp;
+  frontMat.stencilZFail = THREE.DecrementWrapStencilOp;
+  frontMat.stencilZPass = THREE.DecrementWrapStencilOp;
+  const frontMesh = new THREE.Mesh(geometry, frontMat);
+  frontMesh.renderOrder = renderOrder;
+  group.add(frontMesh);
+
+  return group;
+}
+
+function createClippingCaps(maxDim) {
+  const size = maxDim * 8; // gede biar pasti nutupin, sisanya dipotong bidang lain
+  const geo = new THREE.PlaneGeometry(size, size);
+
+  Object.entries(clippingPlanes).forEach(([key, plane], i) => {
+    const others = planeList.filter((p) => p !== plane);
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0x000000,
+      roughness: 1,
+      metalness: 0,
+      side: THREE.DoubleSide,
+      clippingPlanes: others,
+      stencilWrite: true,
+      stencilRef: 0,
+      stencilFunc: THREE.NotEqualStencilFunc,
+      stencilFail: THREE.ReplaceStencilOp,
+      stencilZFail: THREE.ReplaceStencilOp,
+      stencilZPass: THREE.ReplaceStencilOp,
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.renderOrder = i + 1.1; // tepat setelah grup stensil plane ini (i+1)
+    mesh.onAfterRender = (r) => r.clearStencil();
+    scene.add(mesh);
+    capMeshes[key] = mesh;
+    updateCapTransform(key);
+  });
+}
+
+function updateCapTransform(key) {
+  if (!capMeshes) return;
+  const mesh = capMeshes[key];
+  const plane = clippingPlanes[key];
+  if (!mesh || !plane) return;
+  plane.coplanarPoint(mesh.position);
+  mesh.lookAt(
+    mesh.position.x - plane.normal.x,
+    mesh.position.y - plane.normal.y,
+    mesh.position.z - plane.normal.z
+  );
 }
 
 function frameCameraToBox(box) {
@@ -209,7 +308,8 @@ function axisRange(axis) {
 function applyPlane(axis, kind, t) {
   const { min, max } = axisRange(axis);
   const threshold = min + t * (max - min);
-  const plane = clippingPlanes[axis + (kind === "min" ? "Min" : "Max")];
+  const key = axis + (kind === "min" ? "Min" : "Max");
+  const plane = clippingPlanes[key];
   if (kind === "min") {
     // normal (+axis): visible where axisVal + constant >= 0 -> axisVal >= -constant
     plane.constant = -threshold;
@@ -217,6 +317,7 @@ function applyPlane(axis, kind, t) {
     // normal (-axis): visible where -axisVal + constant >= 0 -> axisVal <= constant
     plane.constant = threshold;
   }
+  updateCapTransform(key);
 }
 
 function resetSectionPlanes() {
