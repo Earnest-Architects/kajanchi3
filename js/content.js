@@ -70,7 +70,7 @@ export const notesEnabled = true;
 export const autoTour = {
   music: ["assets/bgm/asset1.mp3", "assets/bgm/asset2.mp3"],
   rotateSpeed: 6,
-  transitionDuration: 1400,
+  transitionDuration: 2200,
   // Berapa lama (ms) menunggu setelah pengunjung melepas mouse/jari
   // sebelum 360 otomatis berputar lagi (drag manual tetap berfungsi
   // penuh selama mode PLAY aktif; ini cuma jeda sebelum auto-rotate
@@ -78,6 +78,7 @@ export const autoTour = {
   resumeDelay: 3000,
   sequence: [
     { id: "view7", duration: 8000 },
+    { id: "view1", duration: 10000 },
     { id: "view2", duration: 10000 },
     { id: "view3", duration: 10000 },
     { id: "view4", duration: 10000 },

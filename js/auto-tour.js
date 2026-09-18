@@ -108,11 +108,40 @@ if (hasAllControls && autoTour && autoTour.sequence && autoTour.sequence.length)
     panoramaEl.querySelectorAll(".auto-tour-blur-overlay").forEach((el) => el.remove());
   }
 
-  /** Crossfade + blur dari scene sekarang ke scene berikutnya. */
+  /* ---------- Sinyal "scene beneran udah siap" ----------
+   * viewer.loadScene() Pannellum itu internal-nya async (nunggu
+   * proses fade-nya sendiri kelar dulu baru scene & config-nya
+   * bener2 diganti, termasuk autoRotate ke-reset ke false di situ).
+   * Kalau startAutoRotate() dipanggil KEPAGIAN (sebelum proses
+   * internal itu kelar), settingannya bakal ke-timpa lagi.
+   * Makanya start rotate SELALU nunggu event "scenechange" dari
+   * Pannellum dulu, bukan langsung setelah manggil loadScene(). */
+  let sceneReadyResolve = null;
+  viewer.on("scenechange", () => {
+    if (sceneReadyResolve) {
+      const resolve = sceneReadyResolve;
+      sceneReadyResolve = null;
+      resolve();
+    }
+  });
+  function waitSceneReady() {
+    return new Promise((resolve) => {
+      sceneReadyResolve = resolve;
+    });
+  }
+
+  /** Crossfade + blur dari scene sekarang ke scene berikutnya.
+   *  Rotate langsung jalan begitu Pannellum selesai switch scene
+   *  di baliknya (jauh lebih cepat dari transitionDuration) — gak
+   *  perlu nunggu blur-overlay-nya kelar fade out dulu, jadi gak
+   *  ada jeda diam sebelum scene baru mulai berputar. */
   async function crossfadeTo(nextId) {
     const canvas = panoramaEl.querySelector("canvas");
     if (!canvas) {
+      const ready = waitSceneReady();
       viewer.loadScene(nextId);
+      await ready;
+      if (active) startRotationForCurrentStep();
       return;
     }
     const snap = document.createElement("canvas");
@@ -122,7 +151,15 @@ if (hasAllControls && autoTour && autoTour.sequence && autoTour.sequence.length)
     snap.getContext("2d").drawImage(canvas, 0, 0);
     panoramaEl.appendChild(snap);
 
+    const ready = waitSceneReady();
     viewer.loadScene(nextId);
+    await ready;
+
+    if (!active) {
+      snap.remove();
+      return;
+    }
+    startRotationForCurrentStep();
 
     requestAnimationFrame(() => {
       snap.style.transition = `filter ${autoTour.transitionDuration}ms ease, opacity ${autoTour.transitionDuration}ms ease`;
@@ -130,8 +167,7 @@ if (hasAllControls && autoTour && autoTour.sequence && autoTour.sequence.length)
       snap.style.opacity = "0";
     });
 
-    await wait(autoTour.transitionDuration);
-    snap.remove();
+    setTimeout(() => snap.remove(), autoTour.transitionDuration);
   }
 
   function startRotationForCurrentStep() {
@@ -149,14 +185,17 @@ if (hasAllControls && autoTour && autoTour.sequence && autoTour.sequence.length)
       const step = autoTour.sequence[sequencePos];
 
       if (!started) {
+        const ready = waitSceneReady();
         viewer.loadScene(step.id);
+        await ready;
+        if (!active) return;
         started = true;
+        startRotationForCurrentStep();
       } else {
         await crossfadeTo(step.id);
         if (!active) return;
       }
 
-      startRotationForCurrentStep();
       await wait(step.duration);
       if (!active) return;
 
