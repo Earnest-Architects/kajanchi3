@@ -765,14 +765,32 @@ html, body {
 /* ---------- Mini 3D panel (icon-rail kiri-bawah, pop-out ke kanan tombol "3D") ---------- */
 .mini3d-nav-panel { position: relative; }
 
+/* Panel di-lepas dari posisi relatif terhadap tombol "3D"-nya sendiri
+   (dulu nempel di sisi kanan tombol, jadi kalau tombolnya ada di
+   tengah icon-rail, panelnya yang tinggi bisa menumpuk ikon2 lain
+   di kolom). Sekarang di-anchor langsung ke viewport (fixed), digeser
+   ke luar seluruh kolom icon-rail, jadi tidak akan pernah menutupi
+   ikon manapun di rail, di posisi manapun tombolnya berada. */
 .mini3d-panel {
-  position: absolute;
-  left: calc(100% + 14px);
-  bottom: 0;
+  position: fixed;
+  left: 84px;
+  bottom: 22px;
+  z-index: 45;
   width: 300px;
   height: 360px;
   min-width: 240px;
   min-height: 280px;
+}
+.mini3d-panel:fullscreen,
+.mini3d-panel.mini3d-fullscreen {
+  left: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  border-radius: 0;
 }
 
 .mini3d-viewport {
@@ -783,7 +801,7 @@ html, body {
   border-radius: 9px;
   overflow: hidden;
   border: 1px solid var(--panel-border);
-  background: #10151f;
+  background: #ffffff;
   touch-action: none;
 }
 .mini3d-viewport canvas {
@@ -804,8 +822,8 @@ html, body {
   font-family: var(--font-mono);
   font-size: 10.5px;
   letter-spacing: 0.05em;
-  color: var(--paper-dim);
-  background: #10151f;
+  color: #6b7280;
+  background: #ffffff;
   pointer-events: none;
   transition: opacity 0.25s ease;
 }
@@ -914,7 +932,7 @@ html, body {
 .mini3d-resize-handle svg { width: 10px; height: 10px; color: var(--paper-dim); }
 
 @media (max-width: 560px) {
-  .mini3d-panel { width: 220px; height: 300px; min-width: 190px; min-height: 260px; padding: 8px; left: calc(100% + 10px); }
+  .mini3d-panel { width: 220px; height: 300px; min-width: 190px; min-height: 260px; padding: 8px; left: 64px; bottom: 14px; }
 }
 
 /* ---------- Mobile ---------- */
