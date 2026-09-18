@@ -29,7 +29,7 @@ const PANEL_MIN_HEIGHT = 280;
 
 const panel = document.getElementById("mini3d-panel");
 const showBtn = document.getElementById("mini3d-show-btn");
-const hideBtn = document.getElementById("mini3d-hide-btn");
+const fullscreenBtn = document.getElementById("mini3d-fullscreen-btn");
 const viewport = document.getElementById("mini3d-viewport");
 const canvas = document.getElementById("mini3d-canvas");
 const loadingEl = document.getElementById("mini3d-loading");
@@ -60,6 +60,8 @@ let controls = null;
 let modelRoot = null;
 let clippingPlanes = null; // { xMin, xMax, yMin, yMax, zMin, zMax } -> THREE.Plane
 let modelBox = null; // THREE.Box3 asli model (sebelum di-center)
+let initialCameraPos = null; // posisi kamera awal, dipakai tombol Reset
+let initialTarget = null; // target orbit awal, dipakai tombol Reset
 let animId = null;
 let resizeObserver = null;
 let initStarted = false;
@@ -91,9 +93,14 @@ function initThree() {
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
-  controls.enablePan = true;
+  // Pan dimatikan supaya target orbit selalu diam di tengah objek —
+  // objek jadi tidak akan pernah "kabur" keluar jendela waktu rotate.
+  controls.enablePan = false;
   controls.enableZoom = true;
-  controls.screenSpacePanning = true;
+  controls.zoomSpeed = 0.6; // scroll zoom dulu terlalu liar, diperhalus
+  controls.rotateSpeed = 0.8;
+  // Batas sementara, akan diperketat relatif ukuran model lewat
+  // frameCameraToBox() setelah model selesai di-load.
   controls.minDistance = 0.05;
   controls.maxDistance = 500;
 
@@ -171,7 +178,17 @@ function frameCameraToBox(box) {
   camera.far = maxDim * 50;
   camera.updateProjectionMatrix();
   controls.target.set(0, 0, 0);
+
+  // Batas zoom relatif ke ukuran model: zoom-in tidak sampai nembus
+  // objek, zoom-out tidak sampai objeknya jadi titik kecil/hilang.
+  controls.minDistance = maxDim * 0.35;
+  controls.maxDistance = maxDim * 3.5;
   controls.update();
+
+  // Simpan posisi awal ini supaya tombol Reset bisa mengembalikan
+  // kamera, bukan cuma bidang potong section-nya saja.
+  initialCameraPos = camera.position.clone();
+  initialTarget = controls.target.clone();
 }
 
 /* ---------- Section (clipping) X/Y/Z ----------
@@ -237,7 +254,13 @@ function bindSliderEvents() {
   });
 
   resetBtn.addEventListener("click", () => {
-    if (modelBox) resetSectionPlanes();
+    if (!modelBox) return;
+    resetSectionPlanes();
+    if (initialCameraPos && initialTarget) {
+      camera.position.copy(initialCameraPos);
+      controls.target.copy(initialTarget);
+      controls.update();
+    }
   });
 }
 
@@ -275,17 +298,39 @@ function onViewportResize() {
 
 /* ---------- Show / hide panel ---------- */
 
+// Tombol "3D" di icon-rail sekarang jadi satu2nya kontrol buka/tutup
+// (toggle) — iconnya tetap kelihatan terus baik panel lagi
+// kebuka/ketutup, tidak ada lagi tombol close terpisah.
 showBtn.addEventListener("click", () => {
-  panel.classList.remove("hidden");
-  showBtn.classList.remove("visible");
-  initThree();
-  startRenderLoop();
+  const isHidden = panel.classList.contains("hidden");
+  if (isHidden) {
+    panel.classList.remove("hidden");
+    showBtn.classList.add("is-active");
+    initThree();
+    startRenderLoop();
+  } else {
+    panel.classList.add("hidden");
+    showBtn.classList.remove("is-active");
+    stopRenderLoop();
+    if (document.fullscreenElement === panel) {
+      document.exitFullscreen?.();
+    }
+  }
 });
-hideBtn.addEventListener("click", () => {
-  panel.classList.add("hidden");
-  showBtn.classList.add("visible");
-  stopRenderLoop();
-});
+
+if (fullscreenBtn) {
+  fullscreenBtn.addEventListener("click", () => {
+    if (document.fullscreenElement === panel) {
+      document.exitFullscreen?.();
+    } else {
+      panel.requestFullscreen?.().catch(() => {});
+    }
+  });
+  document.addEventListener("fullscreenchange", () => {
+    panel.classList.toggle("mini3d-fullscreen", document.fullscreenElement === panel);
+    onViewportResize();
+  });
+}
 
 /* ---------- Resize window panel (manual scale, mirip floorplan.js) ----------
  * Panel ini nge-anchor di sudut KIRI-BAWAH (left & bottom fixed di CSS),
