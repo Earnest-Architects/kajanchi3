@@ -281,6 +281,18 @@
 
 </div>
 
+<!-- Import map untuk module three.js dari CDN — wajib ada SEBELUM
+     js/mini3d.js dimuat, supaya specifier bare "three" & "three/addons/"
+     yang dipakai di dalam GLTFLoader.js/OrbitControls.js bisa di-resolve. -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
 <script src="lib/pannellum.js"></script>
 <script src="lib/qrcode.js"></script>
 
