@@ -50,6 +50,44 @@ export const metaDescription = "Kajanchi - 360° バーチャルツアー by Ear
 export const notesEnabled = true;
 
 /* ============================================================
+   FITUR AUTO TOUR (tombol ▶ di icon-rail):
+   Klik sekali -> fullscreen, musik latar diputar looping, lalu
+   360 otomatis rotasi per scene sesuai urutan & durasi di bawah,
+   pindah scene pakai transisi crossfade + blur.
+
+   - music    : daftar file mp3, diputar berurutan lalu diulang
+                dari awal lagi selama mode PLAY masih aktif.
+   - rotateSpeed        : kecepatan auto-rotate (derajat/detik).
+                           Positif = muter ke kanan, negatif = ke kiri.
+   - transitionDuration : lama efek blur+crossfade antar scene (ms).
+   - sequence : urutan scene yang diputar + berapa lama (ms) tiap
+                scene berhenti/berputar sebelum pindah ke scene
+                berikutnya. "id" harus sama persis dengan salah
+                satu id di array `views` di bawah. Boleh diedit
+                bebas (tambah/hapus/urutkan ulang/ubah durasi)
+                tanpa perlu menyentuh file JS lain.
+============================================================ */
+export const autoTour = {
+  music: ["assets/bgm/asset1.mp3", "assets/bgm/asset2.mp3"],
+  rotateSpeed: 2,
+  transitionDuration: 1400,
+  // Berapa lama (ms) menunggu setelah pengunjung melepas mouse/jari
+  // sebelum 360 otomatis berputar lagi (drag manual tetap berfungsi
+  // penuh selama mode PLAY aktif; ini cuma jeda sebelum auto-rotate
+  // lanjut lagi).
+  resumeDelay: 3000,
+  sequence: [
+    { id: "view7", duration: 8000 },
+    { id: "view1", duration: 10000 },
+    { id: "view2", duration: 10000 },
+    { id: "view3", duration: 10000 },
+    { id: "view4", duration: 10000 },
+    { id: "view5", duration: 10000 },
+    { id: "view6", duration: 10000 },
+  ],
+};
+
+/* ============================================================
    1) DENAH (FLOORPLAN)
    ------------------------------------------------------------
    Setiap objek di array ini = 1 lantai.
