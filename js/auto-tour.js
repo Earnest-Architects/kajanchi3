@@ -54,7 +54,6 @@ if (hasAllControls && autoTour && autoTour.sequence && autoTour.sequence.length)
   let paused = false;
   let hotspotsHidden = false;
   let manualJump = false;
-  let started = false;
   let trackIndex = 0;
   let sequencePos = 0;
 
@@ -110,13 +109,21 @@ if (hasAllControls && autoTour && autoTour.sequence && autoTour.sequence.length)
   }
 
   /* ---------- Sinyal "scene beneran udah siap" ----------
-   * viewer.loadScene() Pannellum itu internal-nya async (nunggu
-   * proses fade-nya sendiri kelar dulu baru scene & config-nya
-   * bener2 diganti, termasuk autoRotate ke-reset ke false di situ).
-   * Kalau startAutoRotate() dipanggil KEPAGIAN (sebelum proses
-   * internal itu kelar), settingannya bakal ke-timpa lagi.
-   * Makanya start rotate SELALU nunggu event "scenechange" dari
-   * Pannellum dulu, bukan langsung setelah manggil loadScene(). */
+   * viewer.loadScene() Pannellum itu punya fade internal sendiri
+   * (sceneFadeDuration) yang nge-snapshot scene LAMA dan naruhnya
+   * jadi overlay di atas scene baru sampai gambar baru kelar
+   * dimuat — makanya walau overlay hitam kita udah nutup, scene
+   * lama masih "nyangkut" kelihatan pas overlay kita buka lagi.
+   * Makanya overlay hitam kita ini yang jadi satu-satunya transisi:
+   * fade internal Pannellum dimatikan (disableSceneFade) tiap kali
+   * kita manggil loadScene, jadi gantinya langsung switch instan
+   * di balik layar hitam kita, bersih tanpa sisa scene lama.
+   *
+   * "scenechange" = config scene baru udah aktif (di titik ini baru
+   * aman manggil startAutoRotate, karena sebelum ini settingannya
+   * masih bisa ke-reset ulang oleh Pannellum).
+   * "load"        = gambar panorama baru udah BENERAN kelar dimuat
+   *                 (baru di titik ini aman buka overlay hitam lagi). */
   let sceneReadyResolve = null;
   viewer.on("scenechange", () => {
     if (sceneReadyResolve) {
@@ -131,14 +138,35 @@ if (hasAllControls && autoTour && autoTour.sequence && autoTour.sequence.length)
     });
   }
 
+  let sceneLoadResolve = null;
+  viewer.on("load", () => {
+    if (sceneLoadResolve) {
+      const resolve = sceneLoadResolve;
+      sceneLoadResolve = null;
+      resolve();
+    }
+  });
+  function waitSceneLoaded() {
+    return new Promise((resolve) => {
+      sceneLoadResolve = resolve;
+    });
+  }
+
+  function disableSceneFade() {
+    const cfg = viewer.getConfig();
+    if (cfg) cfg.sceneFadeDuration = 0;
+  }
+
   function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /** Transisi fade-to-black ke scene berikutnya: layar gelap dulu
-   *  (half durasi), scene diganti & rotasi mulai jalan SAAT MASIH
-   *  GELAP, baru layar terang lagi (half durasi) — jadi begitu
-   *  kelihatan, scene baru udah muter duluan, gak ada jeda diam. */
+   *  (half durasi), scene diganti (fade internal Pannellum
+   *  dimatikan supaya bersih, tanpa sisa scene lama) & rotasi mulai
+   *  jalan SAAT MASIH GELAP, baru layar terang lagi (half durasi)
+   *  SETELAH panorama barunya beneran kelar dimuat — jadi begitu
+   *  kelihatan, scene baru udah utuh & udah muter duluan. */
   async function transitionTo(nextId) {
     const half = Math.max(0, autoTour.transitionDuration / 2);
 
@@ -157,6 +185,8 @@ if (hasAllControls && autoTour && autoTour.sequence && autoTour.sequence.length)
     }
 
     const ready = waitSceneReady();
+    const loaded = waitSceneLoaded();
+    disableSceneFade();
     viewer.loadScene(nextId);
     await ready;
 
@@ -165,6 +195,12 @@ if (hasAllControls && autoTour && autoTour.sequence && autoTour.sequence.length)
       return;
     }
     startRotationForCurrentStep();
+
+    await loaded;
+    if (!active) {
+      overlay.remove();
+      return;
+    }
 
     requestAnimationFrame(() => {
       overlay.style.opacity = "0";
@@ -190,17 +226,11 @@ if (hasAllControls && autoTour && autoTour.sequence && autoTour.sequence.length)
     while (active) {
       const step = autoTour.sequence[sequencePos];
 
-      if (!started) {
-        const ready = waitSceneReady();
-        viewer.loadScene(step.id);
-        await ready;
-        if (!active) return;
-        started = true;
-        startRotationForCurrentStep();
-      } else {
-        await transitionTo(step.id);
-        if (!active) return;
-      }
+      // Semua perpindahan scene (termasuk yang pertama kali PLAY
+      // ditekan) lewat transisi fade-to-black yang sama, jadi
+      // konsisten dan gak ada lompatan mendadak.
+      await transitionTo(step.id);
+      if (!active) return;
 
       await wait(step.duration);
       if (!active) return;
@@ -285,7 +315,6 @@ if (hasAllControls && autoTour && autoTour.sequence && autoTour.sequence.length)
   function start() {
     active = true;
     paused = false;
-    started = false;
     sequencePos = 0;
     trackIndex = 0;
     playBtn.classList.add("is-active");
