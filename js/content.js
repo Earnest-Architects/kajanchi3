@@ -320,6 +320,24 @@ export const views = [
 export const contents = [];
 
 /* ============================================================
+   3) PHOTOS (3D Carousel)
+   ------------------------------------------------------------
+   Foto-foto yang muncul di jendela "3D Carousel" (tombol ikon
+   galeri di icon-rail kiri-bawah). Tiap objek:
+     image  : path gambar (assets/cg1.webp, dst).
+     title  : nama ruangan, tampil di sudut kiri-bawah foto.
+     target : id view 360 (harus sama persis dengan salah satu
+              "id" di array `views` di atas) — dituju saat foto
+              ini diklik.
+   Boleh tambah/hapus/urutkan ulang bebas.
+============================================================ */
+export const photoCG = [
+  { image: "assets/cg1.webp", title: "Exterior-close", target: "view8" },
+  { image: "assets/cg2.webp", title: "Master Bedroom", target: "view2" },
+  { image: "assets/cg3.webp", title: "Dressing Room", target: "view5" },
+];
+
+/* ============================================================
    Helper — TIDAK PERLU DIEDIT
    Dipakai oleh js/viewer.js dan js/floorplan.js untuk membaca
    data di atas. Diletakkan di sini supaya file ini tetap jadi
