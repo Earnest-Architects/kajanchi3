@@ -19,7 +19,8 @@
 import { photoCG } from "./content.js";
 import { goToView } from "./viewer.js";
 
-const TRANSITION_MS = 3000;
+const OPEN_CLOSE_MS = 2000; // durasi opening/closing overlay
+const NAV_MS = 650;         // durasi zoom+blur cepat menuju view hotspot
 
 const overlay = document.getElementById("cg-overlay");
 const stage = document.getElementById("cg-stage");
@@ -70,8 +71,10 @@ function render() {
     const rotate = offset === 0 ? 0 : offset > 0 ? -32 : 32;
     const z = 100 - abs;
     const opacity = abs > 2 ? 0 : 1;
+    // Foto utama dinaikkan sedikit supaya terlihat "paling atas" dari samping.
+    const lift = offset === 0 ? -16 : 0;
 
-    card.style.transform = `translate(-50%, -50%) translateX(${x}%) scale(${scale}) rotateY(${rotate}deg)`;
+    card.style.transform = `translate(-50%, -50%) translateY(${lift}px) translateX(${x}%) scale(${scale}) rotateY(${rotate}deg)`;
     card.style.zIndex = z;
     card.style.opacity = opacity;
     card.classList.toggle("cg-card-active", offset === 0);
@@ -95,7 +98,7 @@ function close() {
   overlay.classList.remove("cg-visible");
   overlay.classList.remove("cg-navigating");
   clearTimeout(closeTimer);
-  closeTimer = setTimeout(() => overlay.classList.add("hidden"), TRANSITION_MS);
+  closeTimer = setTimeout(() => overlay.classList.add("hidden"), OPEN_CLOSE_MS);
 }
 
 /** Klik foto tengah: load scene 360 tujuan langsung di background,
@@ -108,7 +111,7 @@ function goToHotspot(targetId) {
   closeTimer = setTimeout(() => {
     overlay.classList.remove("cg-visible", "cg-navigating");
     overlay.classList.add("hidden");
-  }, TRANSITION_MS);
+  }, NAV_MS);
 }
 
 function step(dir) {
