@@ -97,6 +97,9 @@ let renderLoopActive = false;
 let shadowLight = null; // directional light yang cast shadow, dikonfigurasi ulang sesuai ukuran model
 const _tmpSize = new THREE.Vector3(); // vektor reusable buat renderFrame
 let groundShadow = null; // plane transparan di bawah model, cuma buat nangkep bayangan
+// Satu nilai gelap-bayangan buat semuanya (ground plane & self-shadow di
+// dinding/permukaan model) — ubah di sini aja kalau mau lebih/kurang gelap.
+const SHADOW_DARKNESS = 0.2;
 
 /* ---------- Cap hitam di potongan (section) — irisan geometri langsung ----------
  * Versi sebelumnya (teknik stencil-parity ala "cap holes in clipped
@@ -785,13 +788,20 @@ function configureShadowLight(box) {
   // miring). normalBias dinaikkan jauh lebih besar khusus buat itu.
   shadowLight.shadow.bias = -0.0004;
   shadowLight.shadow.normalBias = maxDim * 0.003;
+  // Kegelapan bayangan di dinding/permukaan model (self-shadow) dulu jauh
+  // lebih pekat daripada ground shadow, karena ground pakai ShadowMaterial
+  // yang opacity-nya di-set manual (0.2), sedangkan dinding cuma dapet
+  // kontras ambient vs directional light apa adanya. shadow.intensity
+  // menyamakan gelapnya shadow dari light ini ke semua penerima
+  // (termasuk dinding) supaya konsisten dengan opacity ground di bawah.
+  shadowLight.shadow.intensity = SHADOW_DARKNESS;
 
   // Ground plane transparan cuma buat nangkep bayangan (tidak keliatan
   // sendiri) — sekadar "dudukan" visual di bawah model biar bayangannya
   // jelas kebaca meski model tidak punya lantai/alas yang rata & luas.
   if (!groundShadow) {
     const groundGeo = new THREE.PlaneGeometry(1, 1);
-    const groundMat = new THREE.ShadowMaterial({ opacity: 0.2 });
+    const groundMat = new THREE.ShadowMaterial({ opacity: SHADOW_DARKNESS });
     groundShadow = new THREE.Mesh(groundGeo, groundMat);
     groundShadow.rotation.x = -Math.PI / 2;
     groundShadow.receiveShadow = true;
