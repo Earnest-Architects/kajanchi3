@@ -791,7 +791,7 @@ function configureShadowLight(box) {
   // jelas kebaca meski model tidak punya lantai/alas yang rata & luas.
   if (!groundShadow) {
     const groundGeo = new THREE.PlaneGeometry(1, 1);
-    const groundMat = new THREE.ShadowMaterial({ opacity: 0.28 });
+    const groundMat = new THREE.ShadowMaterial({ opacity: 0.2 });
     groundShadow = new THREE.Mesh(groundGeo, groundMat);
     groundShadow.rotation.x = -Math.PI / 2;
     groundShadow.receiveShadow = true;
