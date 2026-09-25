@@ -655,6 +655,26 @@ function initThree() {
           mat.polygonOffset = false;
           mat.polygonOffsetFactor = 0;
           mat.polygonOffsetUnits = 0;
+          // Fallback lintas-versi: di three.js lama, directional-light shadow
+          // TIDAK punya parameter shadowIntensity sama sekali (shadow selalu
+          // full gelap, shadowLight.shadow.intensity di configureShadowLight()
+          // diabaikan begitu saja). Kalau pola shader lama ini terdeteksi,
+          // di-patch manual di sini supaya dinding ikut memakai SHADOW_DARKNESS
+          // yang sama persis dengan opacity ground shadow. Kalau three.js-nya
+          // sudah versi baru (sudah punya shadowIntensity bawaan), blok ini
+          // otomatis tidak melakukan apa-apa (native yang jalan).
+          mat.onBeforeCompile = (shader) => {
+            const oldShadowCall =
+              "directLight.color *= ( directLight.visible && receiveShadow ) ? getShadow( directionalShadowMap[ i ], directionalLightShadow.shadowMapSize, directionalLightShadow.shadowBias, directionalLightShadow.shadowRadius, vDirectionalShadowCoord[ i ] ) : 1.0;";
+            if (!shader.fragmentShader.includes(oldShadowCall)) return; // native sudah menangani
+            shader.uniforms.uShadowIntensity = { value: SHADOW_DARKNESS };
+            shader.fragmentShader = shader.fragmentShader
+              .replace("void main() {", "uniform float uShadowIntensity;\nvoid main() {")
+              .replace(
+                oldShadowCall,
+                "directLight.color *= mix( 1.0, ( directLight.visible && receiveShadow ) ? getShadow( directionalShadowMap[ i ], directionalLightShadow.shadowMapSize, directionalLightShadow.shadowBias, directionalLightShadow.shadowRadius, vDirectionalShadowCoord[ i ] ) : 1.0, uShadowIntensity );"
+              );
+          };
           mat.needsUpdate = true;
         });
       });
