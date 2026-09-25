@@ -1438,9 +1438,9 @@ html, body {
 
 .cg-stage {
   position: relative;
-  width: 97%;
+  width: 100%;
   max-width: none;
-  height: min(82vh, 900px);
+  height: min(98vh, 1080px); /* +20% dari sebelumnya */
   touch-action: none;
 }
 
@@ -1520,7 +1520,7 @@ html, body {
 .cg-arrow-next { right: 26px; }
 
 @media (max-width: 720px) {
-  .cg-stage { width: 100%; height: 56vh; }
+  .cg-stage { width: 100%; height: 67vh; }
   .cg-arrow-btn { width: 38px; height: 38px; bottom: 12px; }
   .cg-arrow-prev { left: 10px; }
   .cg-arrow-next { right: 10px; }
