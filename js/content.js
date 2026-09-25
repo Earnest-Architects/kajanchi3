@@ -50,6 +50,25 @@ export const metaDescription = "Kajanchi - 360° バーチャルツアー by Ear
 export const notesEnabled = true;
 
 /* ============================================================
+   FITUR MINI 3D (panel "Mini 3D" + icon "3D" di icon-rail kiri-bawah):
+   Nampilin model .glb (Three.js) yang bisa di-orbit/pan/zoom dan
+   dipotong per sumbu X/Y/Z. File model-nya HARUS ditaruh di folder
+   assets/.
+
+   - Isi dengan NAMA FILE model-nya saja (bukan path lengkap), mis.:
+       export const mini3dModel = "3D.glb";
+     -> fitur AKTIF, icon "3D" muncul di icon-rail, model di-load
+        (lazy, cuma waktu panelnya pertama dibuka) dari assets/3D.glb.
+
+   - Kosongkan jadi "" atau "#" kalau project ini BELUM/TIDAK punya
+     model 3D-nya:
+       export const mini3dModel = "#";
+     -> fitur otomatis NONAKTIF: icon "3D" & panelnya disembunyikan
+        sepenuhnya, model TIDAK pernah di-load. js/mini3d.js boleh
+        tetap ada di repo, tidak dipakai. */
+export const mini3dModel = "3D.glb";
+
+/* ============================================================
    FITUR AUTO TOUR (tombol ▶ di icon-rail):
    Klik sekali -> fullscreen, musik latar diputar looping, lalu
    360 otomatis rotasi per scene sesuai urutan & durasi di bawah,
