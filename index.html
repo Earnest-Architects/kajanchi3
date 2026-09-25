@@ -174,6 +174,15 @@
     </div>
   </div>
 
+  <button id="cg-carousel-show-btn" class="rail-btn" aria-label="Show photos" title="Photos">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="7" width="14" height="14" rx="2"/>
+      <path d="M7 7V4a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-3"/>
+      <circle cx="7.5" cy="12.5" r="1.5"/>
+      <path d="M4 18l3-3 2.5 2.5L13 14l3 4"/>
+    </svg>
+  </button>
+
   <!-- ============ Mini 3D (model .glb, orbit/pan/zoom + section X/Y/Z) ============ -->
   <div class="mini3d-nav-panel">
     <div class="floorplan-panel mini3d-panel hidden" id="mini3d-panel">
@@ -281,6 +290,29 @@
 
 </div>
 
+<!-- ============ 3D Carousel (Photos) ============ -->
+<div class="cg-overlay hidden" id="cg-overlay">
+  <button id="cg-close-btn" class="cg-close-btn" aria-label="Close photos" title="Close">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 6L6 18M6 6l12 12"/>
+    </svg>
+  </button>
+
+  <button id="cg-prev-btn" class="cg-arrow-btn cg-arrow-prev" aria-label="Previous photo" title="Previous">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M15 18l-6-6 6-6"/>
+    </svg>
+  </button>
+
+  <div class="cg-stage" id="cg-stage"><!-- diisi js/photo-cg.js --></div>
+
+  <button id="cg-next-btn" class="cg-arrow-btn cg-arrow-next" aria-label="Next photo" title="Next">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 18l6-6-6-6"/>
+    </svg>
+  </button>
+</div>
+
 <!-- Import map untuk module three.js dari CDN — wajib ada SEBELUM
      js/mini3d.js dimuat, supaya specifier bare "three" & "three/addons/"
      yang dipakai di dalam GLTFLoader.js/OrbitControls.js bisa di-resolve. -->
@@ -312,5 +344,6 @@
 <script type="module" src="js/notes-list.js"></script>
 <script type="module" src="js/auto-tour.js"></script>
 <script type="module" src="js/mini3d.js"></script>
+<script type="module" src="js/photo-cg.js"></script>
 </body>
 </html>
