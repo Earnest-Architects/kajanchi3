@@ -1392,9 +1392,10 @@ html, body {
 }
 
 /* ---------- 3D Carousel (Photos) ----------
-   Overlay full-screen: background gelap 50% (transparan, tampilan
-   utama 360 tetap terlihat di belakangnya) + foto-foto tersusun
-   dalam perspektif 3D (tengah besar, samping lebih kecil & miring). */
+   Overlay full-screen: background gelap transparan (tampilan utama
+   360 tetap terlihat di belakangnya) + carousel 3D dirender pakai
+   Three.js (canvas WebGL) supaya foto utama benar-benar di depan
+   (tidak pernah tertutup foto samping) dan bisa di-sweep pakai mouse. */
 .cg-overlay {
   position: fixed;
   inset: 0;
@@ -1411,23 +1412,22 @@ html, body {
 .cg-overlay.hidden { display: none; }
 .cg-overlay.cg-visible { opacity: 1; }
 
-/* Klik foto -> menuju view hotspot: zoom CEPAT + blur, layar
-   menggelap total (solid black), foto lain & tombol memudar cepat,
-   supaya transisi ke 360 terasa singkat & menyatu (tidak patah). */
+/* Klik foto -> menuju view hotspot: zoom CEPAT + blur pada canvas,
+   layar menggelap total (solid black), tombol memudar cepat, supaya
+   transisi ke 360 terasa singkat & menyatu (tidak patah). */
 .cg-overlay.cg-navigating {
   background: #000;
   transition: background-color 0.55s ease;
 }
-.cg-overlay.cg-navigating .cg-card:not(.cg-card-active) {
-  opacity: 0 !important;
-  transition: opacity 0.25s ease;
-}
-.cg-overlay.cg-navigating .cg-card-active {
-  transform: translate(-50%, -50%) translateY(-16px) scale(2.3) !important;
-  filter: blur(24px);
+.cg-overlay.cg-navigating .cg-canvas {
+  transform: scale(1.5);
+  filter: blur(26px);
   opacity: 0;
-  box-shadow: none;
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), filter 0.6s ease, opacity 0.55s ease 0.1s;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), filter 0.6s ease, opacity 0.5s ease 0.12s;
+}
+.cg-overlay.cg-navigating .cg-caption {
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 .cg-overlay.cg-navigating .cg-close-btn,
 .cg-overlay.cg-navigating .cg-arrow-btn {
@@ -1438,47 +1438,30 @@ html, body {
 
 .cg-stage {
   position: relative;
-  width: 90%;
-  max-width: 1400px;
-  height: min(74vh, 760px);
-  perspective: 1600px;
-  transform-style: preserve-3d;
+  width: 97%;
+  max-width: none;
+  height: min(82vh, 900px);
+  touch-action: none;
 }
 
-.cg-card {
+.cg-canvas {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 58%;
-  aspect-ratio: 8 / 6;
-  height: auto;
-  border-radius: 14px;
-  overflow: hidden;
-  cursor: pointer;
-  box-shadow: 0 20px 46px rgba(0,0,0,0.5);
-  transition: transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.35s ease, filter 0.45s ease, box-shadow 0.3s ease, z-index 0s;
-  will-change: transform;
-}
-.cg-card img {
+  inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
   display: block;
-  pointer-events: none;
-  user-select: none;
+  cursor: grab;
+  transition: transform 0.45s ease, filter 0.45s ease, opacity 0.4s ease;
 }
-/* Foto utama sengaja dinaikkan sedikit + shadow lebih tebal & lebih
-   jauh, supaya terlihat "melayang paling atas" dibanding foto samping. */
-.cg-card-active {
-  box-shadow: 0 46px 90px rgba(0,0,0,0.75), 0 14px 30px rgba(0,0,0,0.5), 0 0 0 1px var(--accent-soft);
-}
+.cg-canvas:active { cursor: grabbing; }
 
-.cg-card-title {
+.cg-caption {
   position: absolute;
-  left: 16px;
-  bottom: 14px;
-  z-index: 1;
-  padding: 6px 14px;
+  left: 50%;
+  bottom: 8%;
+  transform: translateX(-50%);
+  z-index: 2;
+  padding: 7px 16px;
   border-radius: 999px;
   font-family: var(--font-ui);
   font-size: 13px;
@@ -1489,10 +1472,11 @@ html, body {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--panel-border);
-  opacity: 0;
+  pointer-events: none;
+  opacity: 0.96;
   transition: opacity 0.3s ease;
+  white-space: nowrap;
 }
-.cg-card-active .cg-card-title { opacity: 1; }
 
 .cg-close-btn {
   position: absolute;
@@ -1536,10 +1520,10 @@ html, body {
 .cg-arrow-next { right: 26px; }
 
 @media (max-width: 720px) {
-  .cg-stage { width: 100%; height: 46vh; }
-  .cg-card { width: 78%; }
+  .cg-stage { width: 100%; height: 56vh; }
   .cg-arrow-btn { width: 38px; height: 38px; bottom: 12px; }
   .cg-arrow-prev { left: 10px; }
   .cg-arrow-next { right: 10px; }
   .cg-close-btn { top: 14px; right: 14px; }
+  .cg-caption { font-size: 12px; bottom: 6%; }
 }
