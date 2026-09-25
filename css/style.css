@@ -1403,7 +1403,7 @@ html, body {
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
   opacity: 0;
-  transition: opacity 3s ease, background-color 3s ease;
+  transition: opacity 2s ease, background-color 2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1411,24 +1411,29 @@ html, body {
 .cg-overlay.hidden { display: none; }
 .cg-overlay.cg-visible { opacity: 1; }
 
-/* Klik foto -> menuju view hotspot: layar menggelap total (solid
-   black) + foto yang diklik di-zoom, foto lain & tombol memudar,
-   semua dalam 3 detik supaya transisi ke 360 terasa menyatu/smooth. */
-.cg-overlay.cg-navigating { background: #000; }
+/* Klik foto -> menuju view hotspot: zoom CEPAT + blur, layar
+   menggelap total (solid black), foto lain & tombol memudar cepat,
+   supaya transisi ke 360 terasa singkat & menyatu (tidak patah). */
+.cg-overlay.cg-navigating {
+  background: #000;
+  transition: background-color 0.55s ease;
+}
 .cg-overlay.cg-navigating .cg-card:not(.cg-card-active) {
   opacity: 0 !important;
-  transition: opacity 0.6s ease;
+  transition: opacity 0.25s ease;
 }
 .cg-overlay.cg-navigating .cg-card-active {
-  transform: translate(-50%, -50%) scale(2.6) !important;
+  transform: translate(-50%, -50%) translateY(-16px) scale(2.3) !important;
+  filter: blur(24px);
   opacity: 0;
-  transition: transform 3s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 3s ease 0.4s;
+  box-shadow: none;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), filter 0.6s ease, opacity 0.55s ease 0.1s;
 }
 .cg-overlay.cg-navigating .cg-close-btn,
 .cg-overlay.cg-navigating .cg-arrow-btn {
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.25s ease;
 }
 
 .cg-stage {
@@ -1444,13 +1449,14 @@ html, body {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 62%;
-  height: 100%;
+  width: 58%;
+  aspect-ratio: 8 / 6;
+  height: auto;
   border-radius: 14px;
   overflow: hidden;
   cursor: pointer;
-  box-shadow: 0 30px 70px rgba(0,0,0,0.55);
-  transition: transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.35s ease, z-index 0s;
+  box-shadow: 0 20px 46px rgba(0,0,0,0.5);
+  transition: transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.35s ease, filter 0.45s ease, box-shadow 0.3s ease, z-index 0s;
   will-change: transform;
 }
 .cg-card img {
@@ -1461,7 +1467,11 @@ html, body {
   pointer-events: none;
   user-select: none;
 }
-.cg-card-active { box-shadow: 0 30px 90px rgba(0,0,0,0.7), 0 0 0 1px var(--accent-soft); }
+/* Foto utama sengaja dinaikkan sedikit + shadow lebih tebal & lebih
+   jauh, supaya terlihat "melayang paling atas" dibanding foto samping. */
+.cg-card-active {
+  box-shadow: 0 46px 90px rgba(0,0,0,0.75), 0 14px 30px rgba(0,0,0,0.5), 0 0 0 1px var(--accent-soft);
+}
 
 .cg-card-title {
   position: absolute;
