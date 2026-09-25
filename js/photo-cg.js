@@ -57,7 +57,7 @@ let dragStartPos = 0;
 function initThree() {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-  camera.position.set(0, 0, 7.6);
+  camera.position.set(0, 0, 6.33); // didekatkan (~20% lebih besar tampilannya)
   camera.lookAt(0, 0, 0);
 
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -68,7 +68,7 @@ function initThree() {
   raycaster = new THREE.Raycaster();
 
   const loader = new THREE.TextureLoader();
-  const geo = new THREE.PlaneGeometry(4.8, 3.6); // rasio 8:6
+  const geo = new THREE.PlaneGeometry(4.8, 3.2); // rasio 3:2
 
   meshes = photoCG.map((item) => {
     const tex = loader.load(item.image);
