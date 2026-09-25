@@ -1,26 +1,32 @@
 /**
  * ============================================================
- *  photo-cg.js — jendela "3D Carousel" (fitur Photos)
+ *  photo-cg.js — jendela "3D Carousel" (fitur Photos), Three.js
  * ============================================================
  * Dibuka lewat tombol ikon galeri di icon-rail kiri-bawah.
- * Menampilkan foto-foto dari array `photoCG` (js/content.js)
- * dalam bentuk 3D carousel (foto tengah besar, foto kiri/kanan
- * lebih kecil & miring).
+ * Carousel dirender pakai WebGL (Three.js) supaya foto utama
+ * benar-benar berada di depan secara 3D (tidak akan pernah
+ * tertutup foto samping seperti versi DOM sebelumnya), dan bisa
+ * di-sweep pakai mouse/jari dengan gerakan yang halus.
  *
- * Efek:
- *   - Opening : overlay + foto fade-in opacity 0% -> 100%, 3 detik.
- *   - Closing : kebalikan dari opening (fade-out 3 detik).
- *   - Klik foto tengah -> load view 360 tujuan LANGSUNG (di
- *     belakang overlay, jadi sudah siap saat overlay terbuka),
- *     lalu foto di-zoom + layar menggelap perlahan (3 detik)
- *     sebelum overlay ditutup, hasilnya transisi terasa smooth
- *     tanpa "patah".
+ * - Foto tengah (aktif)  : besar, terang penuh, paling depan.
+ * - Foto samping         : lebih kecil, mundur ke belakang &
+ *                           diputar (rotateY), digelapkan 50%.
+ * - Sweep mouse/touch    : drag horizontal memutar carousel
+ *                           secara realtime, lalu snap halus ke
+ *                           foto terdekat saat dilepas.
+ * - Klik foto tengah     : load view 360 tujuan LANGSUNG (di
+ *                           belakang overlay), lalu canvas di-zoom
+ *                           + blur cepat sebelum overlay ditutup
+ *                           (transisi terasa menyatu/tidak patah).
+ * - Klik foto samping    : carousel diputar halus ke foto itu.
  * ============================================================ */
 import { photoCG } from "./content.js";
 import { goToView } from "./viewer.js";
+import * as THREE from "three";
 
 const OPEN_CLOSE_MS = 2000; // durasi opening/closing overlay
 const NAV_MS = 650;         // durasi zoom+blur cepat menuju view hotspot
+const N = photoCG.length;
 
 const overlay = document.getElementById("cg-overlay");
 const stage = document.getElementById("cg-stage");
@@ -29,81 +35,163 @@ const closeBtn = document.getElementById("cg-close-btn");
 const prevBtn = document.getElementById("cg-prev-btn");
 const nextBtn = document.getElementById("cg-next-btn");
 
-let activeIndex = 0;
-let cards = [];
+const caption = document.createElement("div");
+caption.className = "cg-caption";
+stage.appendChild(caption);
+
+let renderer = null;
+let scene, camera;
+let meshes = [];
+let raycaster;
+
+let position = 0;       // posisi kontinu (boleh pecahan saat drag/animasi)
+let targetPosition = 0; // target integer yang sedang dituju
+let running = false;
 let closeTimer = null;
 
-function buildStage() {
-  stage.innerHTML = "";
-  cards = photoCG.map((item, i) => {
-    const card = document.createElement("div");
-    card.className = "cg-card";
-    card.innerHTML = `
-      <img src="${item.image}" alt="${item.title || ""}" draggable="false" />
-      <span class="cg-card-title">${item.title || ""}</span>
-    `;
-    card.addEventListener("click", () => {
-      if (overlay.classList.contains("cg-navigating")) return;
-      // Kartu yang bukan tengah: geser dulu supaya jadi tengah.
-      if (i !== activeIndex) {
-        activeIndex = i;
-        render();
-        return;
-      }
-      goToHotspot(item.target);
-    });
-    stage.appendChild(card);
-    return card;
+let dragging = false;
+let moved = false;
+let dragStartX = 0;
+let dragStartPos = 0;
+
+function initThree() {
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+  camera.position.set(0, 0, 7.6);
+  camera.lookAt(0, 0, 0);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.domElement.className = "cg-canvas";
+  stage.insertBefore(renderer.domElement, caption);
+
+  raycaster = new THREE.Raycaster();
+
+  const loader = new THREE.TextureLoader();
+  const geo = new THREE.PlaneGeometry(4.8, 3.6); // rasio 8:6
+
+  meshes = photoCG.map((item) => {
+    const tex = loader.load(item.image);
+    if ("colorSpace" in tex) tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 4;
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true });
+    const mesh = new THREE.Mesh(geo, mat);
+    scene.add(mesh);
+    return mesh;
   });
+
+  resize();
 }
 
-function render() {
-  const n = cards.length;
-  cards.forEach((card, i) => {
-    // Jarak melingkar terpendek dari kartu aktif (biar geser kiri/kanan wajar).
-    let offset = i - activeIndex;
-    if (offset > n / 2) offset -= n;
-    if (offset < -n / 2) offset += n;
+function resize() {
+  if (!renderer) return;
+  const w = stage.clientWidth;
+  const h = stage.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
 
-    const abs = Math.abs(offset);
-    const x = offset * 46; // %
-    const scale = abs === 0 ? 1 : abs === 1 ? 0.74 : 0.55;
-    const rotate = offset === 0 ? 0 : offset > 0 ? -32 : 32;
-    const z = 100 - abs;
-    const opacity = abs > 2 ? 0 : 1;
-    // Foto utama dinaikkan sedikit supaya terlihat "paling atas" dari samping.
-    const lift = offset === 0 ? -16 : 0;
+/** Jarak melingkar terpendek (boleh pecahan) dari index i ke posisi saat ini. */
+function wrappedOffset(i, pos) {
+  let raw = i - pos;
+  raw = ((raw % N) + N) % N;
+  if (raw > N / 2) raw -= N;
+  return raw;
+}
 
-    card.style.transform = `translate(-50%, -50%) translateY(${lift}px) translateX(${x}%) scale(${scale}) rotateY(${rotate}deg)`;
-    card.style.zIndex = z;
-    card.style.opacity = opacity;
-    card.classList.toggle("cg-card-active", offset === 0);
+function layout() {
+  let nearest = 0;
+  let nearestAbs = Infinity;
+
+  meshes.forEach((mesh, i) => {
+    const raw = wrappedOffset(i, position);
+    const abs = Math.abs(raw);
+    if (abs < nearestAbs) { nearestAbs = abs; nearest = i; }
+
+    const x = raw * 2.85;
+    const z = -Math.min(abs, 2.2) * 2.1;
+    const rotY = THREE.MathUtils.clamp(-raw, -1.3, 1.3) * 0.6;
+    const scale = 1 - Math.min(abs, 2) * 0.16;
+    // Foto tengah terang penuh; foto samping digelapkan 50%.
+    const brightness = THREE.MathUtils.lerp(1, 0.5, THREE.MathUtils.clamp(abs / 0.85, 0, 1));
+    const opacity = THREE.MathUtils.clamp(1.2 - abs * 0.5, 0, 1);
+
+    mesh.position.set(x, 0, z);
+    mesh.rotation.y = rotY;
+    mesh.scale.setScalar(Math.max(scale, 0.45));
+    mesh.material.color.setScalar(brightness);
+    mesh.material.opacity = opacity;
+    mesh.renderOrder = Math.round(100 - abs * 10);
   });
+
+  return nearest;
+}
+
+function tick() {
+  if (!running) return;
+  if (!dragging) {
+    position += (targetPosition - position) * 0.16;
+    if (Math.abs(targetPosition - position) < 0.002) position = targetPosition;
+  }
+  const nearest = layout();
+  const title = photoCG[nearest]?.title || "";
+  if (caption.textContent !== title) caption.textContent = title;
+  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+
+function start() {
+  if (!renderer) initThree();
+  resize();
+  if (!running) {
+    running = true;
+    requestAnimationFrame(tick);
+  }
+}
+
+function stop() {
+  running = false;
+}
+
+/** Set target index tujuan, pilih arah lingkaran terpendek dari posisi sekarang. */
+function setTarget(idx) {
+  let candidate = idx;
+  if (Math.abs(idx + N - position) < Math.abs(candidate - position)) candidate = idx + N;
+  if (Math.abs(idx - N - position) < Math.abs(candidate - position)) candidate = idx - N;
+  targetPosition = candidate;
+}
+
+function step(dir) {
+  setTarget((Math.round(targetPosition) + dir + N * 10) % N);
 }
 
 function open() {
   clearTimeout(closeTimer);
   overlay.classList.remove("cg-navigating");
-  buildStage();
-  render();
   overlay.classList.remove("hidden");
-  // requestAnimationFrame ganda supaya browser sempat "commit" state
-  // opacity:0 dulu sebelum ditransisikan ke 1 (biar fade-in beneran jalan).
   requestAnimationFrame(() => {
     requestAnimationFrame(() => overlay.classList.add("cg-visible"));
   });
+  start();
+  window.addEventListener("resize", resize);
 }
 
 function close() {
   overlay.classList.remove("cg-visible");
   overlay.classList.remove("cg-navigating");
   clearTimeout(closeTimer);
-  closeTimer = setTimeout(() => overlay.classList.add("hidden"), OPEN_CLOSE_MS);
+  closeTimer = setTimeout(() => {
+    overlay.classList.add("hidden");
+    stop();
+    window.removeEventListener("resize", resize);
+  }, OPEN_CLOSE_MS);
 }
 
-/** Klik foto tengah: load scene 360 tujuan langsung di background,
- *  sambil overlay memberi efek zoom + fade-to-black 3 detik, baru
- *  overlay ditutup total setelah view-nya sudah pasti tampil. */
+/** Klik foto tengah: load scene 360 tujuan LANGSUNG di background,
+ *  sambil canvas di-zoom + blur cepat & layar menggelap total,
+ *  baru overlay ditutup total setelah view-nya sudah pasti tampil. */
 function goToHotspot(targetId) {
   goToView(targetId);
   overlay.classList.add("cg-navigating");
@@ -111,14 +199,59 @@ function goToHotspot(targetId) {
   closeTimer = setTimeout(() => {
     overlay.classList.remove("cg-visible", "cg-navigating");
     overlay.classList.add("hidden");
+    stop();
+    window.removeEventListener("resize", resize);
   }, NAV_MS);
 }
 
-function step(dir) {
-  const n = cards.length;
-  activeIndex = (activeIndex + dir + n) % n;
-  render();
+function pointerToNdc(e) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  return new THREE.Vector2(
+    ((e.clientX - rect.left) / rect.width) * 2 - 1,
+    -((e.clientY - rect.top) / rect.height) * 2 + 1
+  );
 }
+
+function handleClick(e) {
+  raycaster.setFromCamera(pointerToNdc(e), camera);
+  const hits = raycaster.intersectObjects(meshes);
+  if (!hits.length) return;
+  const idx = meshes.indexOf(hits[0].object);
+  const activeIdx = ((Math.round(targetPosition) % N) + N) % N;
+  if (idx === activeIdx) {
+    goToHotspot(photoCG[idx].target);
+  } else {
+    setTarget(idx);
+  }
+}
+
+function pointerDown(e) {
+  if (overlay.classList.contains("cg-navigating") || !renderer) return;
+  dragging = true;
+  moved = false;
+  dragStartX = e.clientX;
+  dragStartPos = position;
+  stage.setPointerCapture?.(e.pointerId);
+}
+
+function pointerMove(e) {
+  if (!dragging) return;
+  const dx = e.clientX - dragStartX;
+  if (Math.abs(dx) > 4) moved = true;
+  position = dragStartPos - dx / 240;
+}
+
+function pointerUp(e) {
+  if (!dragging) return;
+  dragging = false;
+  const nearestIdx = ((Math.round(position) % N) + N) % N;
+  setTarget(nearestIdx);
+  if (!moved) handleClick(e);
+}
+
+stage.addEventListener("pointerdown", pointerDown);
+stage.addEventListener("pointermove", pointerMove);
+window.addEventListener("pointerup", pointerUp);
 
 showBtn.addEventListener("click", open);
 closeBtn.addEventListener("click", close);
