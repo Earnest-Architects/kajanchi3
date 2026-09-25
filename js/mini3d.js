@@ -549,6 +549,17 @@ function initThree() {
 
   const hemi = new THREE.HemisphereLight(0xdfe8f5, 0x1a1f2b, 1.15);
   scene.add(hemi);
+  // Hemisphere & dir2 (fill) itu masih terarah/bergantung orientasi normal
+  // permukaan — dinding interior yang jauh dari matahari & tidak menghadap
+  // ke arah dir2 tetap bisa jatuh ke HITAM PEKAT (bukan soal shadow map
+  // sama sekali, itu tetap keliatan biar ada sedikit gradasi. AmbientLight
+  // di bawah ini adalah cahaya RATA ke segala arah, tidak peduli normal
+  // permukaan/oklusi apa pun — jadi permukaan paling gelap sekalipun tetap
+  // kebagian cahaya minimum ini, mirip kenapa ground shadow (opacity 0.2)
+  // juga tidak pernah sampai hitam total.
+  const AMBIENT_FLOOR = 0.6;
+  const ambient = new THREE.AmbientLight(0xffffff, AMBIENT_FLOOR);
+  scene.add(ambient);
   const dir = new THREE.DirectionalLight(0xffffff, 1.4);
   dir.position.set(4, 6, 3);
   // Light utama ini yang "mencor" bayangan. Frustum & bias-nya baru
@@ -559,8 +570,11 @@ function initThree() {
   scene.add(dir);
   scene.add(dir.target);
   shadowLight = dir;
-  const dir2 = new THREE.DirectionalLight(0xbcd0ee, 0.5);
-  dir2.position.set(-4, -2, -3);
+  // dir2 dulu diarahkan dari bawah (y=-2) jadi kurang kena ke dinding
+  // vertikal yang membelakangi matahari — dinaikkan & sedikit dipertegas
+  // supaya ikut bantu "isi" sisi yang gelap itu.
+  const dir2 = new THREE.DirectionalLight(0xbcd0ee, 0.7);
+  dir2.position.set(-4, 3, -3);
   scene.add(dir2);
 
   controls = new OrbitControls(camera, renderer.domElement);
